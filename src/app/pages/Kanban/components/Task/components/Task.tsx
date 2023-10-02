@@ -4,22 +4,34 @@ import { CSS } from '@dnd-kit/utilities';
 
 type TaskProps = {
   task: TaskModel;
-  key: string;
-  title: string;
-  id: string;
 };
 
-const Task = ({ task, id, title }: TaskProps) => {
+const Task = ({ task }: TaskProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: id,
+    id: task.taskId,
     data: {
-      type: 'item',
+      type: 'task',
+      ...task,
     },
   });
+  const taskStyle = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+  };
   return (
-    <div className={`bg-white cursor-pointer mb-2 p-2 max-w-xs rounded-lg shadow-md ${false ? 'bg-yellow-100' : ''}`}>
-      <div className="font-bold">
-        id:{id} title:{title}
+    <div {...listeners}>
+      <div
+        ref={setNodeRef}
+        {...attributes}
+        style={taskStyle}
+        className={`bg-white cursor-pointer mb-2 p-2 max-w-xs rounded-lg overflow-visible shadow-md ${isDragging ? 'bg-yellow-100 opacity-50' : ''}`}
+      >
+        <div className="">
+          <div className="font-bold">task.taskId: {task.taskId}</div>
+          <div>task.title: {task.title}</div>
+          <div>task.status: {task.status}</div>
+          <div>task.rank: {task.rank}</div>
+        </div>
       </div>
     </div>
   );

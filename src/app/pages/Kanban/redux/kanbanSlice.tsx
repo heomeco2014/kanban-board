@@ -1,5 +1,5 @@
 import { arrayMove, arraySwap } from '@dnd-kit/sortable';
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, current } from '@reduxjs/toolkit';
 export interface Task {
   taskId: string;
   columnId: string;
@@ -67,31 +67,75 @@ export const kanbanSlice = createSlice({
       const { columnId, columnTitle, taskIds } = action.payload;
       state.columns[columnId] = { columnId: columnId, columnTitle, taskIds };
     },
-    handleDragEndStore: (state, action) => {
+    handleSwapColumns: (state, action) => {
       const { active, over } = action.payload;
       if (over && active.id !== over.id) {
         // Do something when the item is dropped onto a different container
         console.log('active', active);
         console.log('over', over);
         const activeColumn = state.columns[active.id];
-        console.log('🚀 ~ file: kanbanSlice.tsx:77 ~ activeColumn:', activeColumn);
+        console.log('🚀 ~ file: kanbanSlice.tsx:77 ~ activeColumn:', current(activeColumn));
         const overColumn = state.columns[over.id];
-        console.log('🚀 ~ file: kanbanSlice.tsx:79 ~ overColumn:', overColumn);
+        console.log('🚀 ~ file: kanbanSlice.tsx:79 ~ overColumn:', current(overColumn));
         // swap two columns id
-
         const tmp = state.columns[active.id];
         state.columns[active.id] = state.columns[over.id];
         state.columns[over.id] = tmp;
-        console.log('state.columns', state.columns);
+        console.log('state.columns', current(state.columns));
         return;
       } else if (over === null) {
         // Do something when the item is dropped outside of any container
         console.log('over is null');
       }
     },
+    // Not useable yet
+    handleMoveColumns: (state, action) => {
+      const { active, over } = action.payload;
+      if (over && active.id !== over.id) {
+        console.log('active', active);
+        console.log('over', over);
+      }
+    },
+    handleMoveCard: (state, action) => {
+      const { active, over } = action.payload;
+      if (over && active.id !== over.id) {
+        let columnsWithOverTask = Object.values(state.columns)
+          .map((col) => ({
+            column: col,
+            hasOverTask: col.taskIds.includes(over.id),
+          }))
+          .filter((item) => item.hasOverTask);
+        const overTaskColId = columnsWithOverTask[0]?.column?.columnId;
+        console.log('🚀 ~ file: kanbanSlice.tsx:109 ~ overTaskColId:', overTaskColId);
+
+        let columnsWithActiveTask = Object.values(state.columns)
+          .map((col) => ({
+            column: col,
+            hasActiveTask: col.taskIds.includes(active.id),
+          }))
+          .filter((item) => item.hasActiveTask);
+
+        const activeTaskColId = columnsWithActiveTask[0]?.column?.columnId;
+        console.log('🚀 ~ file: kanbanSlice.tsx:119 ~ activeTaskColId:', activeTaskColId);
+        if (overTaskColId && activeTaskColId) {
+          const indexOverTask = state.columns[overTaskColId[overTaskColId?.length - 1]].taskIds.indexOf(over.id);
+          const newIdsArray = [
+            ...state.columns[overTaskColId[overTaskColId?.length - 1]].taskIds.slice(0, indexOverTask),
+            active.id,
+            ...state.columns[overTaskColId[overTaskColId?.length - 1]].taskIds.slice(indexOverTask),
+          ];
+          console.log('🚀 ~ file: kanbanSlice.tsx:127 ~ newIdsArray:', newIdsArray);
+          state.columns[overTaskColId[overTaskColId?.length - 1]].taskIds = newIdsArray;
+          state.columns[activeTaskColId[activeTaskColId?.length - 1]].taskIds.splice(
+            state.columns[activeTaskColId[activeTaskColId?.length - 1]].taskIds.indexOf(active.id),
+            1,
+          );
+        }
+      }
+    },
   },
 });
 
-export const { increment, decrement, incrementByAmount, createNewColumn, handleDragEndStore } = kanbanSlice.actions;
+export const { increment, decrement, incrementByAmount, createNewColumn, handleSwapColumns, handleMoveColumns, handleMoveCard } = kanbanSlice.actions;
 
 export default kanbanSlice;

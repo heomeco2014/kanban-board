@@ -2,28 +2,25 @@ import {
   DndContext,
   DragEndEvent,
   DragMoveEvent,
+  DragOverlay,
   DragStartEvent,
+  DropAnimation,
   KeyboardSensor,
+  MouseSensor,
   PointerSensor,
+  TouchSensor,
   UniqueIdentifier,
-  closestCorners,
+  defaultDropAnimationSideEffects,
   useSensor,
   useSensors,
-  MouseSensor,
-  TouchSensor,
 } from '@dnd-kit/core';
-import { createNewColumn, handleDragEndStore, increment } from '../redux/kanbanSlice';
-import { useKanbanDispatch, useKanbanSelector } from '../utils/store';
-import Column from './ListColumns/components/Column/Column';
+import { SortableContext, rectSwappingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useState } from 'react';
-import {
-  SortableContext,
-  horizontalListSortingStrategy,
-  rectSwappingStrategy,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { createNewColumn, handleMoveCard, handleSwapColumns, increment } from '../redux/kanbanSlice';
+import { useKanbanDispatch, useKanbanSelector } from '../utils/store';
 import ListColumns from './ListColumns/ListColumns';
+import Column from './ListColumns/components/Column/Column';
+import Task from './Task/components/Task';
 
 type DNDType = {
   id: UniqueIdentifier;
@@ -31,19 +28,22 @@ type DNDType = {
   items: { id: UniqueIdentifier; title: string }[];
 };
 
-const Kanban = () => {
+interface Props {
+  adjustScale?: boolean;
+}
+
+export const ACTIVE_DRAG_ITEM_TYPE = {
+  COLUMN: 'COLUMN',
+  TASK: 'TASK',
+};
+
+const Kanban = ({ adjustScale = false }: Props) => {
   const columns = useKanbanSelector((state) => state.kanban.columns);
   const columnIds = Object.keys(columns);
+  const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
   const dispatch = useKanbanDispatch();
-  const value = useKanbanSelector((state) => state.kanban.value);
-
-  const [containers, setContainers] = useState<DNDType[]>([]);
-  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [currentContainerId, setCurrentContainerId] = useState<UniqueIdentifier>();
-  const [containerName, setContainerName] = useState('');
-  const [itemName, setItemName] = useState([]);
-  const [showAddContainerModal, setShowAddContainerModal] = useState(false);
-  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [activeDragItemId, setActiveDragItemId] = useState<UniqueIdentifier>();
+  const [activeDragItemType, setActiveDragItemType] = useState<String>();
 
   // DND Handlers
   const sensors = useSensors(
@@ -66,14 +66,25 @@ const Kanban = () => {
   const pointerSensor = useSensor(PointerSensor);
   const handleDragStart = (event: DragStartEvent) => {
     console.log('Drag start', event);
+    const { active } = event;
+    setActiveDragItemId(active.id);
+    setActiveDragItemType(active.data.current?.type === 'column' ? ACTIVE_DRAG_ITEM_TYPE.COLUMN : ACTIVE_DRAG_ITEM_TYPE.TASK);
+  };
+  const handleDragOver = (event: DragMoveEvent) => {
+    console.log('Drag over', event);
+    dispatch(handleMoveCard({ active: event.active, over: event.over }));
   };
   const handeDragMove = (event: DragMoveEvent) => {
     console.log('Drag move', event);
   };
   const handleDragEnd = (event: DragEndEvent) => {
-    dispatch(handleDragEndStore({ active: event.active, over: event.over }));
+    setActiveDragItemId(undefined);
+    setActiveDragItemType(undefined);
+    dispatch(handleSwapColumns({ active: event.active, over: event.over }));
   };
   // End DND Handlers
+
+  // Create new column
   const handleCreateNewCol = () => {
     // Calculate the new columnId and columnOrder based on the existing columns
     const newColumnId = Object.keys(columns).length + 1;
@@ -89,12 +100,24 @@ const Kanban = () => {
     dispatch(increment());
     console.log('newColumnId', newColumnId);
   };
-  console.log('columnIds', columnIds);
+  // End create new column
+
+  const dropAnimation: DropAnimation = {
+    sideEffects: defaultDropAnimationSideEffects({
+      styles: {
+        active: {
+          opacity: '0.5',
+        },
+      },
+    }),
+  };
+  // console.log('columnIds', columnIds);
   return (
     <div className="flex">
       <DndContext
         sensors={sensors}
-        // onDragStart={handleDragStart}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
@@ -102,6 +125,21 @@ const Kanban = () => {
           strategy={rectSwappingStrategy}
         >
           <ListColumns />
+          <DragOverlay
+            adjustScale={adjustScale}
+            dropAnimation={dropAnimation}
+          >
+            {!activeDragItemType && null}
+            {activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN ? (
+              <Column
+                column={columns[activeDragItemId as string]}
+                id={activeDragItemId as string}
+                title={columns[activeDragItemId as string].columnTitle}
+              />
+            ) : (
+              <Task task={taskMap[activeDragItemId as string]} />
+            )}
+          </DragOverlay>
         </SortableContext>
       </DndContext>
 
