@@ -1,17 +1,19 @@
 import { useKanbanSelector } from '../../utils/store';
+import { Column as ColumnType } from '../../utils/types';
 import Column from './components/Column/Column';
 
-const ListColumns = () => {
-  const columns = useKanbanSelector((state) => state.kanban.columns);
-  const columnIds = Object.keys(columns);
+interface ListColumnsProps {
+  columns: ColumnType[];
+}
+
+const ListColumns = ({ columns }: ListColumnsProps) => {
+  const columnsMap = useKanbanSelector((state) => state.kanban.columns);
   return (
     <>
-      {columnIds.map((columnId, index) => (
+      {columns.map((column, index) => (
         <Column
-          key={columnId}
-          column={columns[columnId]}
-          id={columnId}
-          title={columns[columnId].columnTitle}
+          key={column.columnId + index}
+          column={column}
         />
       ))}
     </>

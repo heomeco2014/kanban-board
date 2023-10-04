@@ -14,9 +14,16 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { SortableContext, rectSwappingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { SortableContext, horizontalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useState } from 'react';
-import { createNewColumn, handleMoveCard, handleSwapColumns, increment } from '../redux/kanbanSlice';
+import {
+  createNewColumn,
+  handleDragTaskOverColumn,
+  handleMoveCardInsideColumn,
+  handleMoveCardToAnotherColumn,
+  handleMoveColumns,
+  increment,
+} from '../redux/kanbanSlice';
 import { useKanbanDispatch, useKanbanSelector } from '../utils/store';
 import ListColumns from './ListColumns/ListColumns';
 import Column from './ListColumns/components/Column/Column';
@@ -39,7 +46,10 @@ export const ACTIVE_DRAG_ITEM_TYPE = {
 
 const Kanban = ({ adjustScale = false }: Props) => {
   const columns = useKanbanSelector((state) => state.kanban.columns);
-  const columnIds = Object.keys(columns);
+  // const columnIds = Object.values(columns).map((col) => col.columnId);
+  const board = useKanbanSelector((state) => state.kanban.board);
+  const columnIds = board.columnOrderIds;
+  const columnMapByOrderId = columnIds.map((colId) => columns[colId]);
   const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
   const dispatch = useKanbanDispatch();
   const [activeDragItemId, setActiveDragItemId] = useState<UniqueIdentifier>();
@@ -72,28 +82,107 @@ const Kanban = ({ adjustScale = false }: Props) => {
   };
   const handleDragOver = (event: DragMoveEvent) => {
     console.log('Drag over', event);
-    dispatch(handleMoveCard({ active: event.active, over: event.over }));
+    const { active, over } = event;
+    if (active && over) {
+      const oldColId = active.data.current?.columnId;
+      const newColId = over.data.current?.columnId;
+      const oldIndex = columns[oldColId].taskIds.indexOf(active.id.toString());
+      const newIndex = columns[newColId].taskIds.indexOf(over.id.toString());
+      if (
+        active.data.current?.type === 'task' &&
+        over?.data.current?.type === 'task' &&
+        over.data.current?.columnId !== active.data.current?.columnId
+      ) {
+        console.log('move card to another column');
+        const oldColId = active.data.current?.columnId;
+        const newColId = over.data.current?.columnId;
+        const oldIndex = columns[oldColId].taskIds.indexOf(active.id.toString());
+        const newIndex = columns[newColId].taskIds.indexOf(over.id.toString());
+        dispatch(
+          handleMoveCardToAnotherColumn({
+            oldColId,
+            newColId,
+            oldIndex,
+            newIndex,
+          }),
+        );
+      }
+    }
   };
-  const handeDragMove = (event: DragMoveEvent) => {
+  const handleDragCancel = (event: DragEndEvent) => {
+    console.log('Drag cancel', event);
+  };
+  const handleDragMove = (event: DragMoveEvent) => {
     console.log('Drag move', event);
   };
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveDragItemId(undefined);
-    setActiveDragItemType(undefined);
-    dispatch(handleSwapColumns({ active: event.active, over: event.over }));
+    console.log('handleDragEnd', event);
+
+    // if (!activeDragItemId || !activeDragItemType) {
+    //   setActiveDragItemId('');
+    //   setActiveDragItemType('');
+    //   return;
+    // }
+    const { over, active } = event;
+    // Move column
+    if (active.data.current?.type === 'column' && over?.data.current?.type === 'column') {
+      if (active.data.current?.columnId !== over.data.current?.columnId) {
+        console.log('Move column');
+        const oldIndex = board.columnOrderIds.indexOf(active.id.toString());
+        const newIndex = board.columnOrderIds.indexOf(over.id.toString());
+        dispatch(handleMoveColumns({ oldIndex, newIndex }));
+      }
+    }
+
+    // Move task inside its own column (in the same column)
+    if (
+      active.data.current?.type === 'task' &&
+      over?.data.current?.type === 'task' &&
+      active.id !== over.id &&
+      over.data.current?.columnId === active.data.current?.columnId
+    ) {
+      if (over.data.current?.columnId === active.data.current?.columnId) {
+        console.log('Move task inside column');
+        const oldIndex = columns[active.data.current.columnId].taskIds.indexOf(active.id.toString());
+        const newIndex = columns[active.data.current.columnId].taskIds.indexOf(over.id.toString());
+        dispatch(handleMoveCardInsideColumn({ colId: active.data.current.columnId, oldTaskIndex: oldIndex, newTaskIndex: newIndex }));
+      }
+    }
+    // Move task to another column
+    if (
+      active.data.current?.type === 'task' &&
+      over?.data.current?.type === 'task' &&
+      over.data.current?.columnId !== active.data.current?.columnId
+    ) {
+      console.log('move card to another column');
+      const oldColId = active.data.current?.columnId;
+      const newColId = over.data.current?.columnId;
+      const oldIndex = columns[oldColId].taskIds.indexOf(active.id.toString());
+      const newIndex = columns[newColId].taskIds.indexOf(over.id.toString());
+      dispatch(
+        handleMoveCardToAnotherColumn({
+          oldColId,
+          newColId,
+          oldIndex,
+          newIndex,
+        }),
+      );
+    }
+    setActiveDragItemId('');
+    setActiveDragItemType('');
   };
   // End DND Handlers
 
   // Create new column
   const handleCreateNewCol = () => {
     // Calculate the new columnId and columnOrder based on the existing columns
-    const newColumnId = Object.keys(columns).length + 1;
+    const newColumnId = 'column-' + (Object.keys(columns).length + 1);
     const newColumnOrder = newColumnId;
     dispatch(
       createNewColumn({
         columnId: newColumnId,
         columnOrder: newColumnOrder,
-        columnTitle: `New Column ${newColumnId}`,
+        columnTitle: `New ${newColumnId}`,
         taskIds: [],
       }),
     );
@@ -107,11 +196,11 @@ const Kanban = ({ adjustScale = false }: Props) => {
       styles: {
         active: {
           opacity: '0.5',
+          transform: 'scale(0.95)',
         },
       },
     }),
   };
-  // console.log('columnIds', columnIds);
   return (
     <div className="flex">
       <DndContext
@@ -119,23 +208,21 @@ const Kanban = ({ adjustScale = false }: Props) => {
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+        // onDragMove={handleDragMove}
       >
         <SortableContext
           items={columnIds}
-          strategy={rectSwappingStrategy}
+          strategy={horizontalListSortingStrategy}
         >
-          <ListColumns />
+          <ListColumns columns={columnMapByOrderId} />
           <DragOverlay
             adjustScale={adjustScale}
             dropAnimation={dropAnimation}
           >
             {!activeDragItemType && null}
             {activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN ? (
-              <Column
-                column={columns[activeDragItemId as string]}
-                id={activeDragItemId as string}
-                title={columns[activeDragItemId as string].columnTitle}
-              />
+              <Column column={columns[activeDragItemId as string]} />
             ) : (
               <Task task={taskMap[activeDragItemId as string]} />
             )}

@@ -5,7 +5,7 @@ export interface Task {
   columnId: string;
   status: string;
   title: string;
-  rank: number;
+  taskOrder: number;
 }
 
 export interface Column {
@@ -21,31 +21,40 @@ export interface TaskMap {
 export interface ColumnMap {
   [key: string]: Column;
 }
-
+export interface Board {
+  boardId: string;
+  boardTitle: string;
+  columnOrderIds: string[];
+}
 export interface InitialState {
   value: number;
+  board: Board;
   taskMap: TaskMap;
   columns: ColumnMap;
 }
 const initialState = {
   value: 4,
-  columnOrderIds: ['column-1', 'column-2', 'column-3', 'column-4'],
+  board: {
+    boardId: 'board-1',
+    boardTitle: 'Board 1',
+    columnOrderIds: ['column-2', 'column-1', 'column-3', 'column-4'],
+  },
   columns: {
-    '1': { columnId: 'column-1', columnTitle: 'Todo', taskIds: ['Id1', 'Id2', 'Id3', 'Id4'] },
-    '2': { columnId: 'column-2', columnTitle: 'In Progress', taskIds: ['Id5', 'Id6'] },
-    '3': { columnId: 'column-3', columnTitle: 'Done', taskIds: [] },
-    '4': { columnId: 'column-4', columnTitle: 'Column 4', taskIds: ['Id7', 'Id8', 'Id9'] },
+    'column-1': { columnId: 'column-1', columnTitle: 'Todo 1', taskIds: ['task-1', 'task-2', 'task-3', 'task-4'] },
+    'column-2': { columnId: 'column-2', columnTitle: 'In Progress 2', taskIds: ['task-5', 'task-6'] },
+    'column-3': { columnId: 'column-3', columnTitle: 'Done 3', taskIds: [] },
+    'column-4': { columnId: 'column-4', columnTitle: 'Column 4', taskIds: ['task-7', 'task-8', 'task-9'] },
   },
   taskMap: {
-    Id1: { taskId: 'Id1', columnId: '1', rank: 1, status: 'todo', title: 'abcd' },
-    Id2: { taskId: 'Id2', columnId: '1', rank: 2, status: 'todo', title: 'bcd' },
-    Id3: { taskId: 'Id3', columnId: '1', rank: 3, status: 'todo', title: 'fes' },
-    Id4: { taskId: 'Id4', columnId: '1', rank: 4, status: 'todo', title: 'hlb' },
-    Id5: { taskId: 'Id5', columnId: '2', rank: 2, status: 'inprogress', title: 'vvv' },
-    Id6: { taskId: 'Id6', columnId: '2', rank: 3, status: 'inprogress', title: 'adfdf' },
-    Id7: { taskId: 'Id7', columnId: '4', rank: 1, status: 'done', title: 'th' },
-    Id8: { taskId: 'Id8', columnId: '4', rank: 2, status: 'done', title: 'sks' },
-    Id9: { taskId: 'Id9', columnId: '4', rank: 3, status: 'done', title: 'acsa' },
+    'task-1': { taskId: 'task-1', columnId: 'column-1', taskOrder: 1, status: 'todo', title: 'abcd' },
+    'task-2': { taskId: 'task-2', columnId: 'column-1', taskOrder: 2, status: 'todo', title: 'bcd' },
+    'task-3': { taskId: 'task-3', columnId: 'column-1', taskOrder: 3, status: 'todo', title: 'fes' },
+    'task-4': { taskId: 'task-4', columnId: 'column-1', taskOrder: 4, status: 'todo', title: 'hlb' },
+    'task-5': { taskId: 'task-5', columnId: 'column-2', taskOrder: 2, status: 'inprogress', title: 'vvv' },
+    'task-6': { taskId: 'task-6', columnId: 'column-2', taskOrder: 3, status: 'inprogress', title: 'adfdf' },
+    'task-7': { taskId: 'task-7', columnId: 'column-4', taskOrder: 1, status: 'done', title: 'th' },
+    'task-8': { taskId: 'task-8', columnId: 'column-4', taskOrder: 2, status: 'done', title: 'sks' },
+    'task-9': { taskId: 'task-9', columnId: 'column-4', taskOrder: 3, status: 'done', title: 'acsa' },
   },
 } as InitialState;
 
@@ -66,76 +75,65 @@ export const kanbanSlice = createSlice({
     createNewColumn: (state, action) => {
       const { columnId, columnTitle, taskIds } = action.payload;
       state.columns[columnId] = { columnId: columnId, columnTitle, taskIds };
+      state.board.columnOrderIds.push(columnId);
     },
-    handleSwapColumns: (state, action) => {
-      const { active, over } = action.payload;
-      if (over && active.id !== over.id) {
-        // Do something when the item is dropped onto a different container
-        console.log('active', active);
-        console.log('over', over);
-        const activeColumn = state.columns[active.id];
-        console.log('🚀 ~ file: kanbanSlice.tsx:77 ~ activeColumn:', current(activeColumn));
-        const overColumn = state.columns[over.id];
-        console.log('🚀 ~ file: kanbanSlice.tsx:79 ~ overColumn:', current(overColumn));
-        // swap two columns id
-        const tmp = state.columns[active.id];
-        state.columns[active.id] = state.columns[over.id];
-        state.columns[over.id] = tmp;
-        console.log('state.columns', current(state.columns));
-        return;
-      } else if (over === null) {
-        // Do something when the item is dropped outside of any container
-        console.log('over is null');
-      }
-    },
+    handleSwapColumns: (state, action) => {},
     // Not useable yet
     handleMoveColumns: (state, action) => {
-      const { active, over } = action.payload;
-      if (over && active.id !== over.id) {
-        console.log('active', active);
-        console.log('over', over);
-      }
+      const { oldIndex, newIndex } = action.payload;
+      const newColumnOrderIds = arrayMove(state.board.columnOrderIds, oldIndex, newIndex);
+      state.board.columnOrderIds = newColumnOrderIds;
     },
-    handleMoveCard: (state, action) => {
-      const { active, over } = action.payload;
-      if (over && active.id !== over.id) {
-        let columnsWithOverTask = Object.values(state.columns)
-          .map((col) => ({
-            column: col,
-            hasOverTask: col.taskIds.includes(over.id),
-          }))
-          .filter((item) => item.hasOverTask);
-        const overTaskColId = columnsWithOverTask[0]?.column?.columnId;
-        console.log('🚀 ~ file: kanbanSlice.tsx:109 ~ overTaskColId:', overTaskColId);
+    handleMoveCardInsideColumn: (state, action) => {
+      const { colId, oldTaskIndex, newTaskIndex } = action.payload;
+      const column = state.columns[colId];
+      const newTaskIds = arrayMove(column.taskIds, oldTaskIndex, newTaskIndex);
+      state.columns[colId].taskIds = newTaskIds;
+      console.log(current(state.columns));
+    },
+    handleMoveCardToAnotherColumn: (state, action) => {
+      const { oldColId, newColId, oldIndex, newIndex } = action.payload;
+      const oldColumn = state.columns[oldColId];
+      const newColumn = state.columns[newColId];
+      const newOldTaskIds = [...oldColumn.taskIds];
+      const newNewTaskIds = [...newColumn.taskIds];
+      const [removed] = newOldTaskIds.splice(oldIndex, 1);
+      newNewTaskIds.splice(newIndex, 0, removed);
+      state.columns[oldColId].taskIds = newOldTaskIds;
+      state.columns[newColId].taskIds = newNewTaskIds;
+      const task = state.taskMap[removed];
+      state.taskMap[removed] = { ...task, columnId: newColId };
 
-        let columnsWithActiveTask = Object.values(state.columns)
-          .map((col) => ({
-            column: col,
-            hasActiveTask: col.taskIds.includes(active.id),
-          }))
-          .filter((item) => item.hasActiveTask);
-
-        const activeTaskColId = columnsWithActiveTask[0]?.column?.columnId;
-        console.log('🚀 ~ file: kanbanSlice.tsx:119 ~ activeTaskColId:', activeTaskColId);
-        if (overTaskColId && activeTaskColId) {
-          const indexOverTask = state.columns[overTaskColId[overTaskColId?.length - 1]].taskIds.indexOf(over.id);
-          const newIdsArray = [
-            ...state.columns[overTaskColId[overTaskColId?.length - 1]].taskIds.slice(0, indexOverTask),
-            active.id,
-            ...state.columns[overTaskColId[overTaskColId?.length - 1]].taskIds.slice(indexOverTask),
-          ];
-          console.log('🚀 ~ file: kanbanSlice.tsx:127 ~ newIdsArray:', newIdsArray);
-          state.columns[overTaskColId[overTaskColId?.length - 1]].taskIds = newIdsArray;
-          state.columns[activeTaskColId[activeTaskColId?.length - 1]].taskIds.splice(
-            state.columns[activeTaskColId[activeTaskColId?.length - 1]].taskIds.indexOf(active.id),
-            1,
-          );
-        }
-      }
+      console.log(current(state.columns));
+    },
+    handleDragTaskOverColumn: (state, action) => {
+      const { oldColId, newColId, oldIndex, newIndex } = action.payload;
+      // Change current dragging task columnID to the over columnID
+      const oldColumn = state.columns[oldColId];
+      const newColumn = state.columns[newColId];
+      const newOldTaskIds = [...oldColumn.taskIds];
+      const newNewTaskIds = [...newColumn.taskIds];
+      const [removed] = newOldTaskIds.splice(oldIndex, 1);
+      newNewTaskIds.splice(newIndex, 0, removed);
+      state.columns[oldColId].taskIds = newOldTaskIds;
+      state.columns[newColId].taskIds = newNewTaskIds;
+      const task = state.taskMap[removed];
+      state.taskMap[removed] = { ...task, columnId: newColId };
+      console.log(current(state.columns));
     },
   },
 });
 
-export const { increment, decrement, incrementByAmount, createNewColumn, handleSwapColumns, handleMoveColumns, handleMoveCard } = kanbanSlice.actions;
+export const {
+  increment,
+  decrement,
+  incrementByAmount,
+  createNewColumn,
+  handleSwapColumns,
+  handleMoveColumns,
+  handleMoveCardInsideColumn,
+  handleMoveCardToAnotherColumn,
+  handleDragTaskOverColumn,
+} = kanbanSlice.actions;
 
 export default kanbanSlice;

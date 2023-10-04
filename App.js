@@ -1,20 +1,29 @@
 const initialState = {
-  taskMap: {
-    Id1: { id: 'Id1', columnId: 1, status: 'todo', title: 'abcd' },
-    Id2: { id: 'Id2', columnId: 1, status: 'todo', title: 'bcd' },
-    Id3: { id: 'Id3', columnId: 1, status: 'todo', title: 'fes' },
-    Id4: { id: 'Id4', columnId: 2, status: 'inprogress', title: 'hlb' },
-    Id5: { id: 'Id5', columnId: 2, status: 'inprogress', title: 'vvv' },
-    Id6: { id: 'Id6', columnId: 2, status: 'inprogress', title: 'adfdf' },
-    Id7: { id: 'Id7', columnId: 3, status: 'done', title: 'th' },
-    Id8: { id: 'Id8', columnId: 3, status: 'done', title: 'sks' },
-    Id9: { id: 'Id9', columnId: 3, status: 'done', title: 'acsa' },
+  value: 4,
+  board: {
+    boardId: 'board-1',
+    boardTitle: 'Board 1',
+    columnOrderIds: ['column-1', 'column-2', 'column-3', 'column-4'],
   },
-  columns: [
-    { id: 1, title: 'Todo', taskIds: ['Id1', 'Id2', 'Id3'] },
-    { id: 2, title: 'In Progress', taskIds: ['Id4', 'Id5', 'Id6'] },
-    { id: 3, title: 'Done', taskIds: ['Id7', 'Id8', 'Id9'] },
-  ],
+  columns: {
+    'column-1': { columnId: 'column-1', columnTitle: 'Todo 1', taskIds: ['task-1', 'task-2', 'task-3', 'task-4'] },
+    'column-2': { columnId: 'column-2', columnTitle: 'In Progress 2', taskIds: ['task-5', 'task-6'] },
+    'column-3': { columnId: 'column-3', columnTitle: 'Done 3', taskIds: [] },
+    'column-4': { columnId: 'column-4', columnTitle: 'Column 4', taskIds: ['task-7', 'task-8', 'task-9'] },
+  },
+  taskMap: {
+    'task-1': { taskId: 'task-1', columnId: 'column-1', taskOrder: 1, status: 'todo', title: 'abcd' },
+    'task-2': { taskId: 'task-2', columnId: 'column-1', taskOrder: 2, status: 'todo', title: 'bcd' },
+    'task-3': { taskId: 'task-3', columnId: 'column-1', taskOrder: 3, status: 'todo', title: 'fes' },
+    'task-4': { taskId: 'task-4', columnId: 'column-1', taskOrder: 4, status: 'todo', title: 'hlb' },
+    'task-5': { taskId: 'task-5', columnId: 'column-2', taskOrder: 2, status: 'inprogress', title: 'vvv' },
+    'task-6': { taskId: 'task-6', columnId: 'column-2', taskOrder: 3, status: 'inprogress', title: 'adfdf' },
+    'task-7': { taskId: 'task-7', columnId: 'column-4', taskOrder: 1, status: 'done', title: 'th' },
+    'task-8': { taskId: 'task-8', columnId: 'column-4', taskOrder: 2, status: 'done', title: 'sks' },
+    'task-9': { taskId: 'task-9', columnId: 'column-4', taskOrder: 3, status: 'done', title: 'acsa' },
+  },
 };
 
-console.log(initialState.taskMap['Id1']);
+const columns = initialState.columns;
+const object = Object.values(columns).map((col) => col.columnId);
+console.log(object);

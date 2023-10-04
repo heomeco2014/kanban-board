@@ -12,14 +12,15 @@ const ListTasks = ({ column }: ListTasksProps) => {
   const taskIds = column.taskIds;
   return (
     <>
-      {taskIds.map((taskId, taskIndex) => (
-        <Task
-          task={taskMap[taskId]}
-          key={taskMap[taskId].taskId}
-          // title={taskMap[taskId].title}
-          // id={taskMap[taskId].taskId}
-        />
-      ))}
+      {taskIds.length > 0 &&
+        taskIds.map((taskID, index) => {
+          return (
+            <Task
+              task={taskMap[taskID]}
+              key={taskID + index}
+            />
+          );
+        })}
     </>
   );
 };

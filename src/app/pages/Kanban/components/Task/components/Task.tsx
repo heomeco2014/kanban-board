@@ -8,7 +8,7 @@ type TaskProps = {
 
 const Task = ({ task }: TaskProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: task.taskId,
+    id: task?.taskId,
     data: {
       type: 'task',
       ...task,
@@ -17,7 +17,9 @@ const Task = ({ task }: TaskProps) => {
   const taskStyle = {
     transform: CSS.Translate.toString(transform),
     transition,
+    border: isDragging ? '2px dotted blue' : '',
   };
+  if (!task) return <></>;
   return (
     <div {...listeners}>
       <div
@@ -26,11 +28,11 @@ const Task = ({ task }: TaskProps) => {
         style={taskStyle}
         className={`bg-white cursor-pointer mb-2 p-2 max-w-xs rounded-lg overflow-visible shadow-md ${isDragging ? 'bg-yellow-100 opacity-50' : ''}`}
       >
-        <div className="">
-          <div className="font-bold">task.taskId: {task.taskId}</div>
+        <div className="select-none">
+          <div className="font-bold">task.taskId: {task?.taskId}</div>
           <div>task.title: {task.title}</div>
           <div>task.status: {task.status}</div>
-          <div>task.rank: {task.rank}</div>
+          <div>task.taskOrder: {task.taskOrder}</div>
         </div>
       </div>
     </div>
