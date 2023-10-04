@@ -148,26 +148,6 @@ const Kanban = ({ adjustScale = false }: Props) => {
         dispatch(handleMoveCardInsideColumn({ colId: active.data.current.columnId, oldTaskIndex: oldIndex, newTaskIndex: newIndex }));
       }
     }
-    // Move task to another column
-    if (
-      active.data.current?.type === 'task' &&
-      over?.data.current?.type === 'task' &&
-      over.data.current?.columnId !== active.data.current?.columnId
-    ) {
-      console.log('move card to another column');
-      const oldColId = active.data.current?.columnId;
-      const newColId = over.data.current?.columnId;
-      const oldIndex = columns[oldColId].taskIds.indexOf(active.id.toString());
-      const newIndex = columns[newColId].taskIds.indexOf(over.id.toString());
-      dispatch(
-        handleMoveCardToAnotherColumn({
-          oldColId,
-          newColId,
-          oldIndex,
-          newIndex,
-        }),
-      );
-    }
     setActiveDragItemId('');
     setActiveDragItemType('');
   };
