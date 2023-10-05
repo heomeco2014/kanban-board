@@ -1,4 +1,4 @@
-import { SortableContext, useSortable } from '@dnd-kit/sortable';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useKanbanSelector } from '../../../../utils/store';
 import { Column as ColumProps, Task as TaskModel } from '../../../../utils/types';
 import { CSS } from '@dnd-kit/utilities';
@@ -22,15 +22,18 @@ function Column({ column }: ColumnProps) {
   };
 
   return (
-    <div {...listeners}>
+    <div ref={setNodeRef}>
       <div
-        className={`min-w-[300px] bg-[#ebecf0] min-h-[40px] h-fit mr-[20px] rounded-xl p-2  ${isDragging ? 'bg-gray-100 opacity-50 z-10' : ''}`}
+        className={`min-w-[300px] bg-[#ebecf0] min-h-[40px] mr-[20px] rounded-xl p-2  ${isDragging ? 'bg-gray-100 opacity-50 z-10 h-full' : ''}`}
         {...attributes}
-        ref={setNodeRef}
+        {...listeners}
         style={style}
       >
         {column.columnTitle}
-        <SortableContext items={column.taskIds}>
+        <SortableContext
+          items={column.taskIds}
+          strategy={verticalListSortingStrategy}
+        >
           <ListTasks column={column} />
         </SortableContext>
       </div>

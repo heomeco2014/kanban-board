@@ -1,3 +1,5 @@
+import { LexoRank } from 'lexorank';
+
 const initialState = {
   value: 4,
   board: {
@@ -23,6 +25,7 @@ const initialState = {
     'task-9': { taskId: 'task-9', columnId: 'column-4', taskOrder: 3, status: 'done', title: 'acsa' },
   },
 };
+let mapObj = {};
 const tasksFromApi = [
   {
     attributes: {
@@ -79,7 +82,7 @@ const tasksFromApi = [
     Name: 'New task',
     DueDate: '2023-09-27',
     StartDate: '2023-09-26',
-    Status: 'Not Started',
+    Status: 'Done',
     Priority: 'Normal',
     Color: '#3B82F6',
     Cost: null,
@@ -125,7 +128,7 @@ const tasksFromApi = [
     Name: 'New task',
     DueDate: '2023-10-04',
     StartDate: '2023-10-04',
-    Status: 'Not Started',
+    Status: 'In Progress',
     Priority: 'Normal',
     Color: '#3B82F6',
     Cost: null,
@@ -163,6 +166,22 @@ const tasksFromApi = [
     Project: 'a081y000004GhyeAAC',
   },
 ];
+let start = LexoRank.middle();
 const columns = initialState.columns;
+let tasksMap = structuredClone(tasksFromApi);
+tasksMap.forEach((task, index) => {
+  if (!mapObj[task.Status]) {
+    mapObj[task.Status] = [];
+  }
+  start = start.genNext();
+  mapObj[task.Status].push({ ...task, rank: start.toString() });
+});
+const newMapObject = {};
+
 const object = Object.values(columns).map((col) => col.columnId);
-console.log(object);
+const lexoRanks = {};
+
+for (let i = 0; i < 10; i++) {
+  lexoRanks[i] = LexoRank.middle().toString();
+}
+console.log('🚀 ~ file: App.js:180 ~ mapObj:', mapObj);

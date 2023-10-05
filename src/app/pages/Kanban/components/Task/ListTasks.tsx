@@ -17,7 +17,7 @@ const ListTasks = ({ column }: ListTasksProps) => {
           return (
             <Task
               task={taskMap[taskID]}
-              key={taskID + index}
+              key={taskID}
             />
           );
         })}

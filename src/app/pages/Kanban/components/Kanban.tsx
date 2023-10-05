@@ -11,23 +11,27 @@ import {
   TouchSensor,
   UniqueIdentifier,
   defaultDropAnimationSideEffects,
+  // defaultDropAnimationSideEffects,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   createNewColumn,
   handleDragTaskOverColumn,
+  handleDragTaskOverEmptyColumn,
   handleMoveCardInsideColumn,
   handleMoveCardToAnotherColumn,
   handleMoveColumns,
   increment,
+  parseDataOnFirstLoad,
 } from '../redux/kanbanSlice';
 import { useKanbanDispatch, useKanbanSelector } from '../utils/store';
 import ListColumns from './ListColumns/ListColumns';
 import Column from './ListColumns/components/Column/Column';
 import Task from './Task/components/Task';
+import { createPortal } from 'react-dom';
 
 type DNDType = {
   id: UniqueIdentifier;
@@ -88,6 +92,16 @@ const Kanban = ({ adjustScale = false }: Props) => {
       const newColId = over.data.current?.columnId;
       const oldIndex = columns[oldColId].taskIds.indexOf(active.id.toString());
       const newIndex = columns[newColId].taskIds.indexOf(over.id.toString());
+      if (active.data.current?.type === 'task' && over?.data.current?.type === 'column') {
+        dispatch(
+          handleDragTaskOverEmptyColumn({
+            oldColId,
+            newColId,
+            oldIndex,
+            newIndex,
+          }),
+        );
+      }
       if (
         active.data.current?.type === 'task' &&
         over?.data.current?.type === 'task' &&
@@ -181,8 +195,11 @@ const Kanban = ({ adjustScale = false }: Props) => {
       },
     }),
   };
+  useEffect(() => {
+    dispatch(parseDataOnFirstLoad(null));
+  }, []);
   return (
-    <div className="flex">
+    <div className="flex m-auto w-full overflow-x-auto overflow-y-hidden">
       <DndContext
         sensors={sensors}
         onDragStart={handleDragStart}
@@ -190,15 +207,18 @@ const Kanban = ({ adjustScale = false }: Props) => {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
         // onDragMove={handleDragMove}
+        // collisionDetection={}
       >
         <SortableContext
           items={columnIds}
           strategy={horizontalListSortingStrategy}
         >
           <ListColumns columns={columnMapByOrderId} />
+        </SortableContext>
+        {createPortal(
           <DragOverlay
-            adjustScale={adjustScale}
-            dropAnimation={dropAnimation}
+            adjustScale={false}
+            // dropAnimation={dropAnimation}
           >
             {!activeDragItemType && null}
             {activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN ? (
@@ -206,8 +226,9 @@ const Kanban = ({ adjustScale = false }: Props) => {
             ) : (
               <Task task={taskMap[activeDragItemId as string]} />
             )}
-          </DragOverlay>
-        </SortableContext>
+          </DragOverlay>,
+          document.body,
+        )}
       </DndContext>
 
       <button onClick={() => handleCreateNewCol()}>+ Create new Col</button>

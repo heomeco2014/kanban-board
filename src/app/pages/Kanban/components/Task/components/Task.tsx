@@ -7,7 +7,7 @@ type TaskProps = {
 };
 
 const Task = ({ task }: TaskProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isSorting } = useSortable({
     id: task?.taskId,
     data: {
       type: 'task',
@@ -16,6 +16,7 @@ const Task = ({ task }: TaskProps) => {
   });
   const taskStyle = {
     transform: CSS.Translate.toString(transform),
+    animation: isSorting ? '100px' : '',
     transition,
     border: isDragging ? '2px dotted blue' : '',
   };
@@ -26,7 +27,7 @@ const Task = ({ task }: TaskProps) => {
         ref={setNodeRef}
         {...attributes}
         style={taskStyle}
-        className={`bg-white cursor-pointer mb-2 p-2 max-w-xs rounded-lg overflow-visible shadow-md ${isDragging ? 'bg-yellow-100 opacity-50' : ''}`}
+        className={`bg-white cursor-pointer mb-2 p-2 max-w-xs rounded-lg overflow-visible shadow-md  ${isDragging ? 'bg-yellow-100 opacity-50' : ''}`}
       >
         <div className="select-none">
           <div className="font-bold">task.taskId: {task?.taskId}</div>

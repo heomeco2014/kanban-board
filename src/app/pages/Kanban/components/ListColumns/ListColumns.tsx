@@ -12,7 +12,7 @@ const ListColumns = ({ columns }: ListColumnsProps) => {
     <>
       {columns.map((column, index) => (
         <Column
-          key={column.columnId + index}
+          key={column.columnId}
           column={column}
         />
       ))}

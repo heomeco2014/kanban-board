@@ -1,5 +1,6 @@
 import { arrayMove, arraySwap } from '@dnd-kit/sortable';
 import { createSlice, current } from '@reduxjs/toolkit';
+import { LexoRank } from 'lexorank';
 export interface Task {
   taskId: string;
   columnId: string;
@@ -31,7 +32,38 @@ export interface InitialState {
   board: Board;
   taskMap: TaskMap;
   columns: ColumnMap;
+  tasksFromApi: Array<TaskFromApi>;
+  tasksByStatus: TasksByStatus;
 }
+
+export interface TasksByStatus {
+  [key: string]: TaskFromApi[];
+}
+export interface TaskFromApi {
+  attributes: {
+    type: string;
+    url: string;
+  };
+  Id: string;
+  Name: string;
+  DueDate: string;
+  StartDate: string;
+  Status: string;
+  Priority: string;
+  Color: string;
+  Cost: null;
+  Hour: number;
+  Assignee: string;
+  Team: string | null;
+  CreatedDate: string;
+  CreatedById: string;
+  Description: string | null;
+  LastModifiedDate: string;
+  LastModifiedById: string;
+  Project: string;
+  Rank?: string;
+}
+
 const initialState = {
   value: 4,
   board: {
@@ -56,7 +88,150 @@ const initialState = {
     'task-8': { taskId: 'task-8', columnId: 'column-4', taskOrder: 2, status: 'done', title: 'sks' },
     'task-9': { taskId: 'task-9', columnId: 'column-4', taskOrder: 3, status: 'done', title: 'acsa' },
   },
+
+  tasksFromApi: [
+    {
+      attributes: {
+        type: 'com_devsamurai__TeamBoard_Task__c',
+        url: '/services/data/v57.0/sobjects/com_devsamurai__TeamBoard_Task__c/a0A1y000007qBoFEAU',
+      },
+      Id: 'a0A1y000007qBoFEAU',
+      Name: 'New task',
+      DueDate: '2023-09-27',
+      StartDate: '2023-09-26',
+      Status: 'Not Started',
+      Priority: 'Normal',
+      Color: '#3B82F6',
+      Cost: undefined,
+      Hour: 8,
+      Assignee: '0051y00000NlOGQAA3',
+      Team: null,
+      CreatedDate: '2023-09-25T06:38:43.000+0000',
+      CreatedById: '0051y00000NpONKAA3',
+      Description: null,
+      LastModifiedDate: '2023-09-25T06:38:43.000+0000',
+      LastModifiedById: '0051y00000NpONKAA3',
+      Project: 'a081y000004GhyeAAC',
+    },
+    {
+      attributes: {
+        type: 'com_devsamurai__TeamBoard_Task__c',
+        url: '/services/data/v57.0/sobjects/com_devsamurai__TeamBoard_Task__c/a0A1y000007qBoAEAU',
+      },
+      Id: 'a0A1y000007qBoAEAU',
+      Name: 'New task',
+      DueDate: '2023-09-30',
+      StartDate: '2023-09-29',
+      Status: 'Not Started',
+      Priority: 'Normal',
+      Color: '#3B82F6',
+      Cost: undefined,
+      Hour: 8,
+      Assignee: null,
+      Team: 'a0C1y0000028W8iEAE',
+      CreatedDate: '2023-09-25T06:38:42.000+0000',
+      CreatedById: '0051y00000NpONKAA3',
+      Description: null,
+      LastModifiedDate: '2023-09-25T06:38:46.000+0000',
+      LastModifiedById: '0051y00000NpONKAA3',
+      Project: 'a081y000004GhyeAAC',
+    },
+    {
+      attributes: {
+        type: 'com_devsamurai__TeamBoard_Task__c',
+        url: '/services/data/v57.0/sobjects/com_devsamurai__TeamBoard_Task__c/a0A1y000007qBoKEAU',
+      },
+      Id: 'a0A1y000007qBoKEAU',
+      Name: 'New task',
+      DueDate: '2023-09-27',
+      StartDate: '2023-09-26',
+      Status: 'Done',
+      Priority: 'Normal',
+      Color: '#3B82F6',
+      Cost: null,
+      Hour: 8,
+      Assignee: null,
+      Team: 'a0C1y0000028W8sEAE',
+      CreatedDate: '2023-09-25T06:38:43.000+0000',
+      CreatedById: '0051y00000NpONKAA3',
+      Description: null,
+      LastModifiedDate: '2023-09-25T06:38:43.000+0000',
+      LastModifiedById: '0051y00000NpONKAA3',
+      Project: 'a081y000004GhyeAAC',
+    },
+    {
+      attributes: {
+        type: 'com_devsamurai__TeamBoard_Task__c',
+        url: '/services/data/v57.0/sobjects/com_devsamurai__TeamBoard_Task__c/a0A1y0000080HV1EAM',
+      },
+      Id: 'a0A1y0000080HV1EAM',
+      Name: 'New task',
+      DueDate: '2023-10-04',
+      StartDate: '2023-10-04',
+      Status: 'Not Started',
+      Priority: 'Normal',
+      Color: '#3B82F6',
+      Cost: null,
+      Hour: 8,
+      Assignee: '0051y00000NlOGVAA3',
+      Team: null,
+      CreatedDate: '2023-10-03T02:21:04.000+0000',
+      CreatedById: '0051y00000NpONKAA3',
+      Description: null,
+      LastModifiedDate: '2023-10-03T02:21:04.000+0000',
+      LastModifiedById: '0051y00000NpONKAA3',
+      Project: 'a081y000004GhyeAAC',
+    },
+    {
+      attributes: {
+        type: 'com_devsamurai__TeamBoard_Task__c',
+        url: '/services/data/v57.0/sobjects/com_devsamurai__TeamBoard_Task__c/a0A1y0000080HUxEAM',
+      },
+      Id: 'a0A1y0000080HUxEAM',
+      Name: 'New task',
+      DueDate: '2023-10-04',
+      StartDate: '2023-10-04',
+      Status: 'In Progress',
+      Priority: 'Normal',
+      Color: '#3B82F6',
+      Cost: null,
+      Hour: 8,
+      Assignee: '0051y00000NlOGVAA3',
+      Team: null,
+      CreatedDate: '2023-10-03T02:20:56.000+0000',
+      CreatedById: '0051y00000NpONKAA3',
+      Description: null,
+      LastModifiedDate: '2023-10-03T02:20:56.000+0000',
+      LastModifiedById: '0051y00000NpONKAA3',
+      Project: 'a081y000004GhyeAAC',
+    },
+    {
+      attributes: {
+        type: 'com_devsamurai__TeamBoard_Task__c',
+        url: '/services/data/v57.0/sobjects/com_devsamurai__TeamBoard_Task__c/a0A1y0000080HUwEAM',
+      },
+      Id: 'a0A1y0000080HUwEAM',
+      Name: 'New task',
+      DueDate: '2023-10-04',
+      StartDate: '2023-10-04',
+      Status: 'Not Started',
+      Priority: 'Normal',
+      Color: '#3B82F6',
+      Cost: null,
+      Hour: 8,
+      Assignee: '0051y00000NlOGYAA3',
+      Team: null,
+      CreatedDate: '2023-10-03T02:20:39.000+0000',
+      CreatedById: '0051y00000NpONKAA3',
+      Description: null,
+      LastModifiedDate: '2023-10-03T02:20:39.000+0000',
+      LastModifiedById: '0051y00000NpONKAA3',
+      Project: 'a081y000004GhyeAAC',
+    },
+  ],
+  tasksByStatus: {},
 } as InitialState;
+let start = LexoRank.middle();
 
 export const kanbanSlice = createSlice({
   name: 'Kanban',
@@ -121,6 +296,33 @@ export const kanbanSlice = createSlice({
       state.taskMap[removed] = { ...task, columnId: newColId };
       console.log(current(state.columns));
     },
+    handleDragTaskOverEmptyColumn: (state, action) => {
+      const { oldColId, newColId, oldIndex, newIndex } = action.payload;
+      // Change current dragging task columnID to the over columnID
+      const oldColumn = state.columns[oldColId];
+      const newColumn = state.columns[newColId];
+      const newOldTaskIds = [...oldColumn.taskIds];
+      const newNewTaskIds = [...newColumn.taskIds];
+      const [removed] = newOldTaskIds.splice(oldIndex, 1);
+      newNewTaskIds.splice(newIndex, 0, removed);
+      state.columns[oldColId].taskIds = newOldTaskIds;
+      state.columns[newColId].taskIds = newNewTaskIds;
+      const task = state.taskMap[removed];
+      state.taskMap[removed] = { ...task, columnId: newColId };
+      console.log(current(state.columns));
+    },
+    // New code here
+    parseDataOnFirstLoad: (state, action) => {
+      state.tasksFromApi.forEach((task, index) => {
+        if (!state.tasksByStatus[task.Status]) {
+          state.tasksByStatus[task.Status] = [];
+        }
+        start = start.genNext();
+        state.tasksByStatus[task.Status].push({ ...task, Rank: start.toString() });
+      });
+      console.log(current(state.tasksByStatus));
+    },
+    // End new code
   },
 });
 
@@ -134,6 +336,8 @@ export const {
   handleMoveCardInsideColumn,
   handleMoveCardToAnotherColumn,
   handleDragTaskOverColumn,
+  handleDragTaskOverEmptyColumn,
+  parseDataOnFirstLoad,
 } = kanbanSlice.actions;
 
 export default kanbanSlice;
