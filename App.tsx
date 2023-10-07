@@ -171,10 +171,13 @@ const columns = initialState.columns;
 let tasksMap = structuredClone(tasksFromApi);
 tasksMap.forEach((task, index) => {
   if (!mapObj[task.Status]) {
-    mapObj[task.Status] = [];
+    mapObj[task.Status] = {
+      colRank: start.toString(),
+      tasks: [],
+    };
   }
+  mapObj[task.Status].tasks.push(task);
   start = start.genNext();
-  mapObj[task.Status].push({ ...task, rank: start.toString() });
 });
 const newMapObject = {};
 
@@ -184,4 +187,8 @@ const lexoRanks = {};
 for (let i = 0; i < 10; i++) {
   lexoRanks[i] = LexoRank.middle().toString();
 }
-console.log('🚀 ~ file: App.js:180 ~ mapObj:', mapObj);
+
+console.log(
+  '🚀 ~ file: App.js:180 ~ mapObj:',
+  Object.keys(mapObj).map((key) => mapObj[key]),
+);

@@ -1,3 +1,5 @@
+import { TaskFromApi } from "../redux/kanbanSlice";
+
 export interface Task{
     taskId: string;
     columnId: string;
@@ -8,9 +10,8 @@ export interface Task{
 }
 
 export interface Column  {
-    columnId: string;
-    columnTitle: string;
-    taskIds: string[];
+   colRank: string;
+   tasks: TaskFromApi[];
   };
 
 export interface KanbanBoardProps{

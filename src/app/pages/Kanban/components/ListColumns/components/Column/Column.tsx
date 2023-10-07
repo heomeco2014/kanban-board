@@ -3,18 +3,29 @@ import { useKanbanSelector } from '../../../../utils/store';
 import { Column as ColumProps, Task as TaskModel } from '../../../../utils/types';
 import { CSS } from '@dnd-kit/utilities';
 import ListTasks from '../../../Task/ListTasks';
+import { useKanbanContext } from '../../../Kanban';
 
 type ColumnProps = {
   column: ColumProps;
 };
 
-function Column({ column }: ColumnProps) {
+function Column({ columnId }: any) {
   // console.log('🚀 ~ file: Column.tsx:13 ~ Column ~ column:', column);
-  const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
+  // console.log(
+  //   '🚀 ~ file: Column.tsx:13 ~ Task Rank:',
+  //   column.tasks.map((task) => task.taskRank),
+  // );
+  const columnMap = useKanbanSelector((state) => state.kanban.columnMap);
+  const column = columnMap[columnId];
+  const { tasksByStatus } = useKanbanContext() as any;
+  console.log({ tasksByStatus, columnId });
+  const taskIds = tasksByStatus[columnId];
+
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging, isSorting } = useSortable({
-    id: column.columnId,
+    id: columnId,
     data: { ...column, type: 'column' },
   });
+
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
@@ -29,13 +40,14 @@ function Column({ column }: ColumnProps) {
         {...listeners}
         style={style}
       >
-        {column.columnTitle}
+        {column.item.label || ''}
         <SortableContext
-          items={column.taskIds}
+          items={taskIds}
           strategy={verticalListSortingStrategy}
         >
-          <ListTasks column={column} />
+          <ListTasks columnId={columnId} />
         </SortableContext>
+        {/* */}
       </div>
     </div>
   );

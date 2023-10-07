@@ -1,36 +1,9 @@
-import {
-  DndContext,
-  DragEndEvent,
-  DragMoveEvent,
-  DragOverlay,
-  DragStartEvent,
-  DropAnimation,
-  KeyboardSensor,
-  MouseSensor,
-  PointerSensor,
-  TouchSensor,
-  UniqueIdentifier,
-  defaultDropAnimationSideEffects,
-  // defaultDropAnimationSideEffects,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import { SortableContext, horizontalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { useEffect, useState } from 'react';
-import {
-  createNewColumn,
-  handleDragTaskOverColumn,
-  handleDragTaskOverEmptyColumn,
-  handleMoveCardInsideColumn,
-  handleMoveCardToAnotherColumn,
-  handleMoveColumns,
-  increment,
-  parseDataOnFirstLoad,
-} from '../redux/kanbanSlice';
+import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, UniqueIdentifier } from '@dnd-kit/core';
+import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { createContext, useContext, useEffect } from 'react';
+import { TasksByStatus, fetchData } from '../redux/kanbanSlice';
 import { useKanbanDispatch, useKanbanSelector } from '../utils/store';
 import ListColumns from './ListColumns/ListColumns';
-import Column from './ListColumns/components/Column/Column';
-import Task from './Task/components/Task';
 import { createPortal } from 'react-dom';
 
 type DNDType = {
@@ -48,79 +21,54 @@ export const ACTIVE_DRAG_ITEM_TYPE = {
   TASK: 'TASK',
 };
 
-const Kanban = ({ adjustScale = false }: Props) => {
-  const columns = useKanbanSelector((state) => state.kanban.columns);
-  // const columnIds = Object.values(columns).map((col) => col.columnId);
-  const board = useKanbanSelector((state) => state.kanban.board);
-  const columnIds = board.columnOrderIds;
-  const columnMapByOrderId = columnIds.map((colId) => columns[colId]);
-  const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
-  const dispatch = useKanbanDispatch();
-  const [activeDragItemId, setActiveDragItemId] = useState<UniqueIdentifier>();
-  const [activeDragItemType, setActiveDragItemType] = useState<String>();
+const groupBy = ({ taskMap, columnMap, statusMap }: any) => {
+  const tasksByStatus: any = {
+    // "Not Started": ["task1", "task2"]
+  };
 
-  // DND Handlers
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 10,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-  const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: {
-      delay: 250,
-      tolerance: 5,
-    },
+  const tasks = Object.values(taskMap).sort((a: any, b: any) => {
+    return a.Rank && b.Rank ? a.Rank.localeCompare(b.Rank) : -1;
   });
-  const mouseSensor = useSensor(MouseSensor);
-  const pointerSensor = useSensor(PointerSensor);
+
+  const columnMapStatus: any = {};
+  for (const key in columnMap) {
+    const column = columnMap[key];
+    if (!columnMapStatus[column.Value]) columnMapStatus[column.Value] = column.Id;
+    tasksByStatus[column.Id] = [];
+  }
+
+  for (const _task of tasks) {
+    const task = _task as any;
+    const status = task.Status;
+
+    const columnId = columnMapStatus[status];
+    if (!!columnId) {
+      if (!tasksByStatus[columnId]) tasksByStatus[columnId] = [];
+      tasksByStatus[columnId].push(task.Id);
+    }
+  }
+
+  return {
+    tasksByStatus,
+  };
+};
+
+const KabanContext = createContext({});
+
+const Kanban = ({ adjustScale = false }: Props) => {
+  const dispatch = useKanbanDispatch();
+  const columnMap = useKanbanSelector((state) => state.kanban.columnMap);
+
   const handleDragStart = (event: DragStartEvent) => {
     console.log('Drag start', event);
     const { active } = event;
-    setActiveDragItemId(active.id);
-    setActiveDragItemType(active.data.current?.type === 'column' ? ACTIVE_DRAG_ITEM_TYPE.COLUMN : ACTIVE_DRAG_ITEM_TYPE.TASK);
+    // setActiveDragItemId(active.data.current?.Status);
+    // setActiveDragItemType(active.data.current?.type === 'column' ? ACTIVE_DRAG_ITEM_TYPE.COLUMN : ACTIVE_DRAG_ITEM_TYPE.TASK);
   };
   const handleDragOver = (event: DragMoveEvent) => {
     console.log('Drag over', event);
     const { active, over } = event;
     if (active && over) {
-      const oldColId = active.data.current?.columnId;
-      const newColId = over.data.current?.columnId;
-      const oldIndex = columns[oldColId].taskIds.indexOf(active.id.toString());
-      const newIndex = columns[newColId].taskIds.indexOf(over.id.toString());
-      if (active.data.current?.type === 'task' && over?.data.current?.type === 'column') {
-        dispatch(
-          handleDragTaskOverEmptyColumn({
-            oldColId,
-            newColId,
-            oldIndex,
-            newIndex,
-          }),
-        );
-      }
-      if (
-        active.data.current?.type === 'task' &&
-        over?.data.current?.type === 'task' &&
-        over.data.current?.columnId !== active.data.current?.columnId
-      ) {
-        console.log('move card to another column');
-        const oldColId = active.data.current?.columnId;
-        const newColId = over.data.current?.columnId;
-        const oldIndex = columns[oldColId].taskIds.indexOf(active.id.toString());
-        const newIndex = columns[newColId].taskIds.indexOf(over.id.toString());
-        dispatch(
-          handleMoveCardToAnotherColumn({
-            oldColId,
-            newColId,
-            oldIndex,
-            newIndex,
-          }),
-        );
-      }
     }
   };
   const handleDragCancel = (event: DragEndEvent) => {
@@ -131,101 +79,47 @@ const Kanban = ({ adjustScale = false }: Props) => {
   };
   const handleDragEnd = (event: DragEndEvent) => {
     console.log('handleDragEnd', event);
-
-    // if (!activeDragItemId || !activeDragItemType) {
-    //   setActiveDragItemId('');
-    //   setActiveDragItemType('');
-    //   return;
-    // }
-    const { over, active } = event;
-    // Move column
-    if (active.data.current?.type === 'column' && over?.data.current?.type === 'column') {
-      if (active.data.current?.columnId !== over.data.current?.columnId) {
-        console.log('Move column');
-        const oldIndex = board.columnOrderIds.indexOf(active.id.toString());
-        const newIndex = board.columnOrderIds.indexOf(over.id.toString());
-        dispatch(handleMoveColumns({ oldIndex, newIndex }));
-      }
-    }
-
-    // Move task inside its own column (in the same column)
-    if (
-      active.data.current?.type === 'task' &&
-      over?.data.current?.type === 'task' &&
-      active.id !== over.id &&
-      over.data.current?.columnId === active.data.current?.columnId
-    ) {
-      if (over.data.current?.columnId === active.data.current?.columnId) {
-        console.log('Move task inside column');
-        const oldIndex = columns[active.data.current.columnId].taskIds.indexOf(active.id.toString());
-        const newIndex = columns[active.data.current.columnId].taskIds.indexOf(over.id.toString());
-        dispatch(handleMoveCardInsideColumn({ colId: active.data.current.columnId, oldTaskIndex: oldIndex, newTaskIndex: newIndex }));
-      }
-    }
-    setActiveDragItemId('');
-    setActiveDragItemType('');
+    // setActiveDragItemId('');
+    // setActiveDragItemType('');
   };
   // End DND Handlers
 
   // Create new column
-  const handleCreateNewCol = () => {
-    // Calculate the new columnId and columnOrder based on the existing columns
-    const newColumnId = 'column-' + (Object.keys(columns).length + 1);
-    const newColumnOrder = newColumnId;
-    dispatch(
-      createNewColumn({
-        columnId: newColumnId,
-        columnOrder: newColumnOrder,
-        columnTitle: `New ${newColumnId}`,
-        taskIds: [],
-      }),
-    );
-    dispatch(increment());
-    console.log('newColumnId', newColumnId);
-  };
-  // End create new column
+  const handleCreateNewCol = () => {};
 
-  const dropAnimation: DropAnimation = {
-    sideEffects: defaultDropAnimationSideEffects({
-      styles: {
-        active: {
-          opacity: '0.5',
-          transform: 'scale(0.95)',
-        },
-      },
-    }),
-  };
   useEffect(() => {
-    dispatch(parseDataOnFirstLoad(null));
+    dispatch(fetchData());
   }, []);
   return (
     <div className="flex m-auto w-full overflow-x-auto overflow-y-hidden">
       <DndContext
-        sensors={sensors}
+        // sensors={sensors}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
         // onDragMove={handleDragMove}
-        // collisionDetection={}
+        // collisionDetection={}gg
       >
         <SortableContext
-          items={columnIds}
+          items={Object.keys(columnMap).map((columnId) => {
+            return columnMap[columnId].Id;
+          })}
           strategy={horizontalListSortingStrategy}
         >
-          <ListColumns columns={columnMapByOrderId} />
+          <ListColumns columnIds={Object.keys(columnMap)} />
         </SortableContext>
         {createPortal(
           <DragOverlay
             adjustScale={false}
             // dropAnimation={dropAnimation}
           >
-            {!activeDragItemType && null}
+            {/* {!activeDragItemType && null}
             {activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN ? (
-              <Column column={columns[activeDragItemId as string]} />
+              <Column column={tasksByStatus[activeDragItemId as string]} />
             ) : (
-              <Task task={taskMap[activeDragItemId as string]} />
-            )}
+              <Task task={getTaskById(tasksByStatus, activeDragItemId as string)} />
+            )} */}
           </DragOverlay>,
           document.body,
         )}
@@ -235,4 +129,23 @@ const Kanban = ({ adjustScale = false }: Props) => {
     </div>
   );
 };
-export default Kanban;
+
+const KanbanWrapper = () => {
+  const dispatch = useKanbanDispatch();
+  const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
+  const columnMap = useKanbanSelector((state) => state.kanban.columnMap);
+  // const statusMap = useKanbanSelector((state) => state.kanban.statusMap);
+
+  const { tasksByStatus } = groupBy({ taskMap, columnMap });
+  return (
+    <KabanContext.Provider value={{ tasksByStatus }}>
+      <Kanban />
+    </KabanContext.Provider>
+  );
+};
+
+export const useKanbanContext = () => {
+  return useContext(KabanContext);
+};
+
+export default KanbanWrapper;
