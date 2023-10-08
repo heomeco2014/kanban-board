@@ -3,19 +3,14 @@ import { Column as ColumnType } from '../../utils/types';
 import Column from './components/Column/Column';
 
 interface ListColumnsProps {
-  columns: ColumnType[];
+  columnIds: string[];
 }
 
-const ListColumns = ({ columnIds }: any) => {
-  // console.log('🚀 ~ file: ListColumns.tsx:10 ~ ListColumns ~ columns:', columns);
-  // const tasksByStatus = useKanbanSelector((state) => state.kanban.tasksByStatus);
-  // console.log('🚀 ~ file: ListColumns.tsx:12 ~ ListColumns ~ tasksByStatus:', tasksByStatus);
-  const columnMap = useKanbanSelector((state) => state.kanban.columnMap);
-
+const ListColumns = ({ columnIds }: ListColumnsProps) => {
   return (
     <>
       {columnIds.length > 0 &&
-        columnIds.map((columnId: any) => (
+        columnIds.map((columnId) => (
           <Column
             key={columnId}
             columnId={columnId}

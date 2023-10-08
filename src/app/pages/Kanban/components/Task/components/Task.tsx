@@ -1,13 +1,13 @@
-import { TaskFromApi, Task as TaskModel } from '../../../redux/kanbanSlice';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useKanbanSelector } from '../../../utils/store';
+import { Task as _Task } from '../../../utils/types';
 
 type TaskProps = {
-  task: TaskFromApi;
+  taskId: string;
 };
 
-const Task = ({ taskId }: any) => {
+const Task = ({ taskId }: TaskProps) => {
   const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
   const task = taskMap[taskId];
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isSorting } = useSortable({
@@ -19,11 +19,9 @@ const Task = ({ taskId }: any) => {
   });
   const taskStyle = {
     transform: CSS.Translate.toString(transform),
-    animation: isSorting ? '100px' : '',
     transition,
     border: isDragging ? '2px dotted blue' : '',
   };
-  if (!task && isDragging) console.log(task);
   return (
     <div {...listeners}>
       <div
@@ -35,9 +33,8 @@ const Task = ({ taskId }: any) => {
         <div className="select-none">
           <div className="font-bold text-blue-500">task.taskId: {task?.Id}</div>
           <div>task.title: {task?.Name}</div>
-          <div>task.colRank: {task?.colRank}</div>
           <div>task.status: {task?.Status}</div>
-          <div>task.Rank: {task?.taskRank}</div>
+          <div>task.Rank: {task?.Rank}</div>
         </div>
       </div>
     </div>
