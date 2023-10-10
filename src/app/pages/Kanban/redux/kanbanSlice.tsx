@@ -77,9 +77,13 @@ export const kanbanSlice = createSlice({
         };
       }
     },
+    moveTaskInsideOwnColumn: (state, action) => {
+      const { activeTask, overTask } = action.payload;
+      state.taskMap[activeTask.Id].Rank = overTask.Rank;
+    },
   },
 });
 
-export const { fetchData, setActiveDragItem, moveColumn, moveTaskToColumn, moveTaskInBetween } = kanbanSlice.actions;
+export const { fetchData, setActiveDragItem, moveColumn, moveTaskToColumn, moveTaskInBetween, moveTaskInsideOwnColumn } = kanbanSlice.actions;
 
 export default kanbanSlice;

@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
-import { fetchData, moveColumn, moveTaskInBetween, moveTaskToColumn, setActiveDragItem } from '../redux/kanbanSlice';
+import { fetchData, moveColumn, moveTaskInBetween, moveTaskInsideOwnColumn, moveTaskToColumn, setActiveDragItem } from '../redux/kanbanSlice';
 import { useKanbanDispatch, useKanbanSelector } from '../utils/store';
 import ListColumns from './ListColumns/ListColumns';
 import { createPortal } from 'react-dom';
@@ -35,6 +35,7 @@ export const ACTIVE_DRAG_ITEM_TYPE = {
   TASK: 'TASK',
 };
 
+// Utilities
 const groupBy = ({ taskMap, columnMap }: { taskMap: TaskMap; columnMap: ColumnMap }) => {
   const tasksByStatus: TasksByStatus = {
     // "Not Started": ["task1", "task2"]
@@ -68,6 +69,14 @@ const groupBy = ({ taskMap, columnMap }: { taskMap: TaskMap; columnMap: ColumnMa
   };
 };
 
+const getColumnByStatus = ({ status, columnMap }: { status: string; columnMap: ColumnMap }) => {
+  for (const key in columnMap) {
+    const column = columnMap[key];
+    if (column.Value === status) return column;
+  }
+  return null;
+};
+// End Utilities
 const KabanContext = createContext({});
 
 export const Kanban = ({ adjustScale = false }: Props) => {
@@ -75,16 +84,17 @@ export const Kanban = ({ adjustScale = false }: Props) => {
   const activeDragItemType = useKanbanSelector((state) => state.kanban.state.activeDragItemType);
   const activeDragItemId = useKanbanSelector((state) => state.kanban.state.activeDragItemId);
   const columnMap = useKanbanSelector((state) => state.kanban.columnMap);
+  const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
   const columnIds = Object.keys(columnMap)
     .sort((a, b) => columnMap[a].Rank.localeCompare(columnMap[b].Rank))
     .map((columnId) => {
       return columnMap[columnId].Id;
     });
   const { tasksByStatus }: TasksByStatus = useKanbanContext();
-  console.log('🚀 ~ file: Kanban.tsx:84 ~ Kanban ~ tasksByStatus:', tasksByStatus);
+  // console.log('🚀 ~ file: Kanban.tsx:84 ~ Kanban ~ tasksByStatus:', tasksByStatus);
   // console.log(columnIds);
   const handleDragStart = (event: DragStartEvent) => {
-    console.log('Drag start', event);
+    // console.log('Drag start', event);
     const { active } = event;
     dispatch(setActiveDragItem({ type: active.data.current?.type, id: active.data.current?.Id }));
   };
@@ -99,13 +109,16 @@ export const Kanban = ({ adjustScale = false }: Props) => {
         let newTaskRank = '';
         if (over.data.current?.type === 'column') {
           const overColumnValue = over.data.current?.Value;
-          console.log('🚀 ~ file: Kanban.tsx:98 ~ handleDragOver ~ overColumnValue:', overColumnValue);
+          // console.log('🚀 ~ file: Kanban.tsx:98 ~ handleDragOver ~ overColumnValue:', overColumnValue);
           dispatch(moveTaskToColumn({ activeTask, overColumnValue }));
           return;
-        } else if (over.data.current?.type === 'task') {
+        }
+
+        // TODO: THIS MIGHT CAUSING BUG
+        else if (over.data.current?.type === 'task') {
           const overTask = over.data.current;
           const activeTask = active.data.current;
-          console.log('move task in between');
+          // console.log('move task in between');
           dispatch(moveTaskInBetween({ activeTask, overTask }));
         } else if (over.data.current?.Status === active.data.current.Status) {
           const overTask = over.data.current;
@@ -133,7 +146,10 @@ export const Kanban = ({ adjustScale = false }: Props) => {
     console.log('handleDragEnd', event);
     // Move column to new place
     const { active, over } = event;
+    if (!active || !over) return;
     if (active && over) {
+      const activeTask = active.data.current;
+      const overTask = over.data.current;
       // MOVE COLUMN
       if (active.data.current?.type === 'column' && over.data.current?.type === 'column') {
         const activeColumnId = active.data.current?.Id;
@@ -143,7 +159,7 @@ export const Kanban = ({ adjustScale = false }: Props) => {
         const activeIndex = columnIds?.indexOf(activeColumnId);
         const overIndex = columnIds?.indexOf(overColumnId);
         let newRank = null;
-        // If move column in middle
+        // If move column in the middle
         // Case 1: Move column to the end of the board
         if (overIndex === columnIds.length - 1) {
           newRank = LexoRank.parse(overColumn.Rank).genNext().toString();
@@ -170,6 +186,52 @@ export const Kanban = ({ adjustScale = false }: Props) => {
         }
         dispatch(moveColumn({ activeColumn, newRank }));
       }
+
+      // MOVE TASK (INSIDE ITS OWN)
+
+      // MOVE TASK TO THE TOP OF THE COLUMN
+      const column = getColumnByStatus({ status: overTask?.Status, columnMap });
+      if (!column) return;
+      if (!overTask?.sortable?.index) {
+        console.log(overTask?.sortable?.index);
+        const newActiveTaskRank = LexoRank.parse(overTask?.Rank).genPrev().toString();
+        // console.log('🚀 ~ file: Kanban.tsx:181 ~ handleDragEnd ~ newActiveTaskRank:', newActiveTaskRank);
+        dispatch(moveTaskInsideOwnColumn({ activeTask, overTask: { ...overTask, Rank: newActiveTaskRank } }));
+      }
+
+      // MOVE TASK TO THE BOTTOM OF THE COLUMN
+      // console.log('taskByStatus', tasksByStatus);
+      // console.log('tasksByStatus[getColumnByStatus(overTask?.Status)?.Id].length - 1', overTask?.Status);
+      // console.log('🚀 ~ file: Kanban.tsx:200 ~ handleDragEnd ~ column:', column);
+      // console.log(tasksByStatus[column?.Id].length - 1);
+      else if (overTask?.sortable?.index === tasksByStatus[column?.Id].length - 1) {
+        const newActiveTaskRank = LexoRank.parse(overTask?.Rank).genNext().toString();
+        dispatch(moveTaskInsideOwnColumn({ activeTask, overTask: { ...overTask, Rank: newActiveTaskRank } }));
+        // console.log('Move task to the end of the column');
+      } else {
+        // console.log('Move task in between');
+        // dispatch(moveTaskInBetween({ activeTask, overTask }));
+        // ? Case 1: Move task inside its own column
+        // * Check if the active task has the same status with the over task
+        if (overTask.sortable.containerId === activeTask?.sortable.containerId) {
+          const activeTaskIndex = activeTask?.sortable?.index;
+          const overTaskIndex = overTask?.sortable?.index;
+          // Move task from top -> bottom
+          if (overTaskIndex > activeTaskIndex) {
+            const topRank = taskMap[overTask.Id].Rank;
+            const bottomRank = taskMap[tasksByStatus[column?.Id][overTaskIndex + 1]].Rank;
+            const newActiveTaskRank = LexoRank.parse(topRank).between(LexoRank.parse(bottomRank)).toString();
+            dispatch(moveTaskInsideOwnColumn({ activeTask, overTask: { ...overTask, Rank: newActiveTaskRank } }));
+          } else if (overTaskIndex < activeTaskIndex) {
+            const topRank = taskMap[tasksByStatus[column?.Id][overTaskIndex - 1]].Rank;
+            const bottomRank = taskMap[overTask.Id].Rank;
+            const newActiveTaskRank = LexoRank.parse(topRank).between(LexoRank.parse(bottomRank)).toString();
+            dispatch(moveTaskInsideOwnColumn({ activeTask, overTask: { ...overTask, Rank: newActiveTaskRank } }));
+          }
+        }
+        // ? Case 2: Move task to another column
+        // *
+      }
     }
     // Reset
     dispatch(setActiveDragItem({ type: '', id: '' }));
@@ -177,7 +239,7 @@ export const Kanban = ({ adjustScale = false }: Props) => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 10,
+        distance: 20,
       },
     }),
   );
@@ -208,8 +270,8 @@ export const Kanban = ({ adjustScale = false }: Props) => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
-        collisionDetection={closestCorners}
         // onDragMove={handleDragMove}
+        // collisionDetection={closestCorners}
         modifiers={[snapToGridModifier]}
       >
         <SortableContext
