@@ -8,20 +8,23 @@ import {
   KeyboardSensor,
   PointerSensor,
   UniqueIdentifier,
+  closestCenter,
   closestCorners,
   defaultDropAnimationSideEffects,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { fetchData, setActiveDragItem } from '../redux/kanbanSlice';
+import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { fetchData, moveColumn, moveTaskInBetween, moveTaskToColumn, setActiveDragItem } from '../redux/kanbanSlice';
 import { useKanbanDispatch, useKanbanSelector } from '../utils/store';
 import ListColumns from './ListColumns/ListColumns';
 import { createPortal } from 'react-dom';
 import { ColumnMap, TaskMap, columnMapStatus, TasksByStatus } from '../utils/types';
 import Column from './ListColumns/components/Column/Column';
 import Task from './Task/components/Task';
+import { createSnapModifier } from '@dnd-kit/modifiers';
+import { LexoRank } from 'lexorank';
 
 interface Props {
   adjustScale?: boolean;
@@ -41,6 +44,7 @@ const groupBy = ({ taskMap, columnMap }: { taskMap: TaskMap; columnMap: ColumnMa
     return a.Rank && b.Rank ? a.Rank.localeCompare(b.Rank) : -1;
   });
 
+  // const tasks = Object.values(taskMap);
   const columnMapStatus: columnMapStatus = {};
   for (const key in columnMap) {
     const column = columnMap[key];
@@ -58,6 +62,7 @@ const groupBy = ({ taskMap, columnMap }: { taskMap: TaskMap; columnMap: ColumnMa
       tasksByStatus[columnId].push(task.Id);
     }
   }
+  console.log(tasksByStatus);
   return {
     tasksByStatus,
   };
@@ -65,11 +70,19 @@ const groupBy = ({ taskMap, columnMap }: { taskMap: TaskMap; columnMap: ColumnMa
 
 const KabanContext = createContext({});
 
-const Kanban = ({ adjustScale = false }: Props) => {
+export const Kanban = ({ adjustScale = false }: Props) => {
+  const dispatch = useKanbanDispatch();
   const activeDragItemType = useKanbanSelector((state) => state.kanban.state.activeDragItemType);
   const activeDragItemId = useKanbanSelector((state) => state.kanban.state.activeDragItemId);
-  const dispatch = useKanbanDispatch();
   const columnMap = useKanbanSelector((state) => state.kanban.columnMap);
+  const columnIds = Object.keys(columnMap)
+    .sort((a, b) => columnMap[a].Rank.localeCompare(columnMap[b].Rank))
+    .map((columnId) => {
+      return columnMap[columnId].Id;
+    });
+  const { tasksByStatus }: TasksByStatus = useKanbanContext();
+  console.log('🚀 ~ file: Kanban.tsx:84 ~ Kanban ~ tasksByStatus:', tasksByStatus);
+  // console.log(columnIds);
   const handleDragStart = (event: DragStartEvent) => {
     console.log('Drag start', event);
     const { active } = event;
@@ -78,7 +91,36 @@ const Kanban = ({ adjustScale = false }: Props) => {
   const handleDragOver = (event: DragMoveEvent) => {
     console.log('Drag over', event);
     const { active, over } = event;
+    if (!active || !over) return;
+    if (active.data.current?.type !== 'task') return;
     if (active && over) {
+      if (active.data.current?.type === 'task') {
+        const activeTask = active.data.current;
+        let newTaskRank = '';
+        if (over.data.current?.type === 'column') {
+          const overColumnValue = over.data.current?.Value;
+          console.log('🚀 ~ file: Kanban.tsx:98 ~ handleDragOver ~ overColumnValue:', overColumnValue);
+          dispatch(moveTaskToColumn({ activeTask, overColumnValue }));
+          return;
+        } else if (over.data.current?.type === 'task') {
+          const overTask = over.data.current;
+          const activeTask = active.data.current;
+          console.log('move task in between');
+          dispatch(moveTaskInBetween({ activeTask, overTask }));
+        } else if (over.data.current?.Status === active.data.current.Status) {
+          const overTask = over.data.current;
+          const activeTask = active.data.current;
+          console.log(
+            '🚀 ~ file: Kanban.tsx:113 ~ handleDragOver ~ tasksByStatus[over.data.current?.Status]:',
+            tasksByStatus[over.data.current?.Status],
+          );
+          console.log('🚀 ~ file: Kanban.tsx:113 ~ handleDragOver ~ over.data.current?.sortable?.index:', over.data.current?.sortable?.index);
+          if (over.data.current?.sortable?.index === tasksByStatus[over.data.current?.Status].length - 1) {
+            console.log('last item');
+          }
+          dispatch(moveTaskInBetween({ activeTask, overTask }));
+        }
+      }
     }
   };
   const handleDragCancel = (event: DragEndEvent) => {
@@ -89,8 +131,48 @@ const Kanban = ({ adjustScale = false }: Props) => {
   };
   const handleDragEnd = (event: DragEndEvent) => {
     console.log('handleDragEnd', event);
-    // setActiveDragItemId('');
-    // setActiveDragItemType('');
+    // Move column to new place
+    const { active, over } = event;
+    if (active && over) {
+      // MOVE COLUMN
+      if (active.data.current?.type === 'column' && over.data.current?.type === 'column') {
+        const activeColumnId = active.data.current?.Id;
+        const overColumnId = over.data.current?.Id;
+        const activeColumn = columnMap[activeColumnId];
+        const overColumn = columnMap[overColumnId];
+        const activeIndex = columnIds?.indexOf(activeColumnId);
+        const overIndex = columnIds?.indexOf(overColumnId);
+        let newRank = null;
+        // If move column in middle
+        // Case 1: Move column to the end of the board
+        if (overIndex === columnIds.length - 1) {
+          newRank = LexoRank.parse(overColumn.Rank).genNext().toString();
+        }
+        // Case 2: Move column to the start of the board
+        else if (overIndex === 0) {
+          newRank = LexoRank.parse(overColumn.Rank).genPrev().toString();
+        }
+        // Case 3: Move column in the middle
+        else {
+          // Move column from left -> right
+          let leftRank = '',
+            rightRank = '';
+          if (activeIndex < overIndex) {
+            leftRank = columnMap[columnIds[overIndex]].Rank;
+            rightRank = columnMap[columnIds[overIndex + 1]].Rank;
+          }
+          // Move column from right -> left
+          else if (activeIndex > overIndex) {
+            leftRank = columnMap[columnIds[overIndex - 1]].Rank;
+            rightRank = columnMap[columnIds[overIndex]].Rank;
+          }
+          newRank = LexoRank.parse(leftRank).between(LexoRank.parse(rightRank)).toString();
+        }
+        dispatch(moveColumn({ activeColumn, newRank }));
+      }
+    }
+    // Reset
+    dispatch(setActiveDragItem({ type: '', id: '' }));
   };
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -104,7 +186,6 @@ const Kanban = ({ adjustScale = false }: Props) => {
       styles: {
         active: {
           opacity: '0.5',
-          transform: 'scale(0.95)',
         },
       },
     }),
@@ -117,31 +198,32 @@ const Kanban = ({ adjustScale = false }: Props) => {
     dispatch(fetchData());
   }, []);
 
+  const gridSize = 6; // pixels
+  const snapToGridModifier = createSnapModifier(gridSize);
   return (
-    <div className="flex m-auto w-full overflow-x-auto overflow-y-hidden p-4">
+    <div className="flex m-auto w-full h-full p-4">
       <DndContext
         sensors={sensors}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
-        // onDragMove={handleDragMove}
         collisionDetection={closestCorners}
+        // onDragMove={handleDragMove}
+        modifiers={[snapToGridModifier]}
       >
         <SortableContext
-          items={Object.keys(columnMap).map((columnId) => {
-            return columnMap[columnId].Id;
-          })}
+          items={columnIds}
           strategy={horizontalListSortingStrategy}
         >
-          <ListColumns columnIds={Object.keys(columnMap)} />
+          <ListColumns columnIds={columnIds} />
         </SortableContext>
         {createPortal(
           <DragOverlay
             adjustScale={false}
             dropAnimation={dropAnimation}
           >
-            {/* {!activeDragItemType && null} */}
+            {!activeDragItemType && null}
             {activeDragItemType === 'column' ? <Column columnId={activeDragItemId} /> : <Task taskId={activeDragItemId} />}
           </DragOverlay>,
           document.body,
@@ -153,16 +235,17 @@ const Kanban = ({ adjustScale = false }: Props) => {
   );
 };
 
-const KanbanWrapper = () => {
+const KanbanWrapper = ({ children }: { children: ReactNode }) => {
   const dispatch = useKanbanDispatch();
   const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
   const columnMap = useKanbanSelector((state) => state.kanban.columnMap);
-  // const statusMap = useKanbanSelector((state) => state.kanban.statusMap);
 
   const { tasksByStatus } = groupBy({ taskMap, columnMap });
   return (
     <KabanContext.Provider value={{ tasksByStatus }}>
-      <Kanban />
+      {/* <DndContext> */}
+      {children}
+      {/* </DndContext> */}
     </KabanContext.Provider>
   );
 };

@@ -8,11 +8,8 @@ interface ListTasksProps {
 }
 
 const ListTasks = ({ columnId }: ListTasksProps) => {
-  const columnMap = useKanbanSelector((state) => state.kanban.columnMap);
-
   const { tasksByStatus }: TasksByStatus = useKanbanContext();
-  const taskIds: string[] = tasksByStatus[columnId];
-  // console.log({ taskIds });
+  const taskIds: any = tasksByStatus[columnId as any];
 
   return (
     <>

@@ -58,9 +58,7 @@ export interface InitialState {
   };
 }
 
-export interface TasksByStatus {
-  [key: string]: string[];
-}
+export type TasksByStatus = Record<string, string[]>;
 export interface columnMapStatus {
   [key: string]: string;
 }
