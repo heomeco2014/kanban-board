@@ -1,3 +1,5 @@
+import { UniqueIdentifier } from '@dnd-kit/core';
+
 export interface TaskMap {
   [key: string]: Task;
 }

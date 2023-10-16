@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import ListTasks from '../../../Task/ListTasks';
 import { useKanbanContext } from '../../../Kanban';
 import { TasksByStatus } from '../../../../utils/types';
+import { UniqueIdentifier } from '@dnd-kit/core';
 
 type ColumnProps = {
   columnId: string;

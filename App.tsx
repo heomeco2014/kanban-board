@@ -188,7 +188,21 @@ for (let i = 0; i < 10; i++) {
   lexoRanks[i] = LexoRank.middle().toString();
 }
 
-console.log(
-  '🚀 ~ file: App.js:180 ~ mapObj:',
-  Object.keys(mapObj).map((key) => mapObj[key]),
-);
+// console.log(
+//   '🚀 ~ file: App.js:180 ~ mapObj:',
+//   Object.keys(mapObj).map((key) => mapObj[key]),
+// );
+const columns2 = [
+  { Id: 'ColumnId-1', Name: '1', Type: 'Status', Value: 'Not Started', Color: '#3B82F6', max: 10, Rank: 1 },
+  { Id: 'ColumnId-2', Name: '2', Type: 'Status', Value: 'In progress', Color: '#3B82F6', max: 10, Rank: 2 },
+  { Id: 'ColumnId-3', Name: '3', Type: 'Status', Value: 'Review', Color: '#3B82F6', max: 10, Rank: 3 },
+  { Id: 'ColumnId-4', Name: '4', Type: 'Status', Value: 'Completed', Color: '#3B82F6', max: 10, Rank: 4 },
+  { Id: 'ColumnId-5', Name: '5', Type: 'Status', Value: 'Invalid', Color: '#3B82F6', max: 10, Rank: -1 },
+];
+const sortedCols = columns2.sort((a: any, b: any) => {
+  if (a.Rank && !b.Rank) return -1;
+  if (!a.Rank && b.Rank) return 1;
+  if (!a.Rank && !b.Rank) return 0;
+  return -a.Rank + b.Rank;
+});
+console.log('🚀 ~ file: App.tsx:209 ~ sortedCols ~ sortedCols:', sortedCols);

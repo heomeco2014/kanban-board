@@ -61,12 +61,10 @@ export const kanbanSlice = createSlice({
     },
     moveTaskToColumn: (state, action) => {
       const { activeTask, overColumnValue } = action.payload;
-      // console.log('🚀 ~ file: kanbanSlice.tsx:64 ~ overColumnValue:', overColumnValue);
       state.taskMap[activeTask.Id] = {
         ...state.taskMap[activeTask.Id],
         Status: overColumnValue,
       };
-      // console.log('🚀 ~ file: kanbanSlice.tsx:46 ~ state.taskMap:', current(state.taskMap));
     },
     moveTaskInBetween: (state, action) => {
       const { activeTask, overTask } = action.payload;
@@ -81,9 +79,24 @@ export const kanbanSlice = createSlice({
       const { activeTask, overTask } = action.payload;
       state.taskMap[activeTask.Id].Rank = overTask.Rank;
     },
+
+    moveTask: (state, action) => {
+      const { activeTask, overTask, columnId, newRank } = action.payload;
+      const column = state.columnMap[columnId];
+      const task = { ...state.taskMap[activeTask.Id] };
+
+      state.taskMap[activeTask.Id][column.Type] = column.Value;
+      if (columnId) {
+        console.log(columnId);
+      }
+      if (newRank) {
+        state.taskMap[activeTask.Id].Rank = newRank;
+      }
+    },
   },
 });
 
-export const { fetchData, setActiveDragItem, moveColumn, moveTaskToColumn, moveTaskInBetween, moveTaskInsideOwnColumn } = kanbanSlice.actions;
+export const { fetchData, setActiveDragItem, moveColumn, moveTaskToColumn, moveTaskInBetween, moveTaskInsideOwnColumn, moveTask } =
+  kanbanSlice.actions;
 
 export default kanbanSlice;
