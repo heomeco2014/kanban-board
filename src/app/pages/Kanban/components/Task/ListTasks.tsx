@@ -1,23 +1,24 @@
 import { useKanbanSelector } from '../../utils/store';
+import { TasksByStatus } from '../../utils/types';
+import { useKanbanContext } from '../Kanban';
 import Task from './components/Task';
 
 interface ListTasksProps {
-  column: {
-    taskIds: string[];
-  };
+  columnId: string;
 }
 
-const ListTasks = ({ column }: ListTasksProps) => {
-  const taskMap = useKanbanSelector((state) => state.kanban.taskMap);
-  const taskIds = column.taskIds;
+const ListTasks = ({ columnId }: ListTasksProps) => {
+  const { tasksByStatus }: TasksByStatus = useKanbanContext();
+  const taskIds: any = tasksByStatus[columnId as any];
+
   return (
     <>
       {taskIds.length > 0 &&
-        taskIds.map((taskID, index) => {
+        taskIds.map((taskId: string) => {
           return (
             <Task
-              task={taskMap[taskID]}
-              key={taskID}
+              key={taskId}
+              taskId={taskId}
             />
           );
         })}

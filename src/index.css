@@ -123,7 +123,17 @@ code,
 kbd,
 samp,
 pre {
-  font-family: theme('fontFamily.mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace); /* 1 */
+  font-family: theme(
+    'fontFamily.mono',
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    'Liberation Mono',
+    'Courier New',
+    monospace
+  ); /* 1 */
   font-size: 1em; /* 2 */
 }
 
@@ -396,6 +406,45 @@ input[type='number'] {
 
 @layer components {
   .controller-btn {
-    @apply capitalize border-none !shadow-none !outline-none bg-neutral-50 hover:bg-blue-50 active:bg-blue-200 focus:text-black hover:text-black text-black;
+    @apply border-none bg-neutral-50 capitalize text-black !shadow-none !outline-none hover:bg-blue-50 hover:text-black focus:text-black active:bg-blue-200;
+  }
+  .icon-hover {
+    @apply cursor-pointer opacity-40 hover:border-[#7f77f1] hover:text-[#7f77f1] hover:opacity-100;
   }
 }
+
+/* width */
+.hidden-scroll-bar-y::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Track */
+.hidden-scroll-bar-y::-webkit-scrollbar-track {
+  border-radius: 100vh;
+  border-radius: 100px;
+}
+
+/* Handle */
+.hidden-scroll-bar-y::-webkit-scrollbar-thumb {
+  border-radius: 100px;
+  background-clip: padding-box;
+}
+.hidden-scroll-bar-y::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    rgb(134, 239, 172),
+    rgb(59, 130, 246),
+    rgb(147, 51, 234)
+  );
+}
+.hover-scroll-bar-y:hover .hidden-scroll-bar-y::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    rgb(134, 239, 172),
+    rgb(59, 130, 246),
+    rgb(147, 51, 234)
+  );
+}
+.hidden-scroll-bar-y {
+  overflow-y: overlay;
+}
+
+/* Hover state */

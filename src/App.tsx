@@ -1,15 +1,18 @@
-import Kanban from './app/pages/Kanban/components/Kanban';
-import { kanbanStore } from './app/pages/Kanban/utils/store';
-import { Provider } from 'react-redux';
+import KanbanNew from './app/pages/Kanban copy/components/KanbanNew'
+import KanbanWrapper, { Kanban } from './app/pages/Kanban/components/Kanban'
+import { kanbanStore } from './app/pages/Kanban/utils/store'
+import { Provider } from 'react-redux'
 
 function App() {
   return (
-    <div>
+    <>
       <Provider store={kanbanStore}>
-        <Kanban />
+        <KanbanWrapper>
+          <KanbanNew />
+        </KanbanWrapper>
       </Provider>
-    </div>
-  );
+    </>
+  )
 }
 
-export default App;
+export default App

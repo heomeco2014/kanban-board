@@ -6,7 +6,7 @@ import {
 import { useKanbanSelector } from '../../../../utils/store'
 import { CSS } from '@dnd-kit/utilities'
 import ListTasks from '../../../Task/ListTasks'
-import { useKanbanContext } from '../../../Kanban'
+import { useKanbanContext } from '../../../KanbanNew'
 import { TasksByStatus } from '../../../../utils/types'
 import AddNewTaskFooter from '../../../Task/components/AddNewTaskFooter'
 import { useState } from 'react'
@@ -62,14 +62,14 @@ function Column({ columnId }: ColumnProps) {
       >
         <div
           className="
-          shadow-custom
           mb-4
           flex
-          h-[48px] w-[249px] items-center justify-between rounded-t-[0.25rem]
-          border-t-[2px]
+          h-[48px]
+          w-[249px] items-center justify-between rounded-t-[0.25rem] border-t-[2px]
           border-t-[rgb(135,144,158)]
           px-2
           pt-2
+          shadow-custom
           "
         >
           <div className="flex select-none items-center gap-x-2 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-[500] uppercase">

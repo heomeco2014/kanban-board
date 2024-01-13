@@ -1,32 +1,6 @@
 import { LexoRank } from 'lexorank';
-
-const initialState = {
-  value: 4,
-  board: {
-    boardId: 'board-1',
-    boardTitle: 'Board 1',
-    columnOrderIds: ['column-1', 'column-2', 'column-3', 'column-4'],
-  },
-  columns: {
-    'column-1': { columnId: 'column-1', columnTitle: 'Todo 1', taskIds: ['task-1', 'task-2', 'task-3', 'task-4'] },
-    'column-2': { columnId: 'column-2', columnTitle: 'In Progress 2', taskIds: ['task-5', 'task-6'] },
-    'column-3': { columnId: 'column-3', columnTitle: 'Done 3', taskIds: [] },
-    'column-4': { columnId: 'column-4', columnTitle: 'Column 4', taskIds: ['task-7', 'task-8', 'task-9'] },
-  },
-  taskMap: {
-    'task-1': { taskId: 'task-1', columnId: 'column-1', taskOrder: 1, status: 'todo', title: 'abcd' },
-    'task-2': { taskId: 'task-2', columnId: 'column-1', taskOrder: 2, status: 'todo', title: 'bcd' },
-    'task-3': { taskId: 'task-3', columnId: 'column-1', taskOrder: 3, status: 'todo', title: 'fes' },
-    'task-4': { taskId: 'task-4', columnId: 'column-1', taskOrder: 4, status: 'todo', title: 'hlb' },
-    'task-5': { taskId: 'task-5', columnId: 'column-2', taskOrder: 2, status: 'inprogress', title: 'vvv' },
-    'task-6': { taskId: 'task-6', columnId: 'column-2', taskOrder: 3, status: 'inprogress', title: 'adfdf' },
-    'task-7': { taskId: 'task-7', columnId: 'column-4', taskOrder: 1, status: 'done', title: 'th' },
-    'task-8': { taskId: 'task-8', columnId: 'column-4', taskOrder: 2, status: 'done', title: 'sks' },
-    'task-9': { taskId: 'task-9', columnId: 'column-4', taskOrder: 3, status: 'done', title: 'acsa' },
-  },
-};
-let mapObj = {};
-const tasksFromApi = [
+import _ from 'lodash';
+let tasks = [
   {
     attributes: {
       type: 'com_devsamurai__TeamBoard_Task__c',
@@ -39,7 +13,7 @@ const tasksFromApi = [
     Status: 'Not Started',
     Priority: 'Normal',
     Color: '#3B82F6',
-    Cost: null,
+    Cost: undefined,
     Hour: 8,
     Assignee: '0051y00000NlOGQAA3',
     Team: null,
@@ -49,6 +23,7 @@ const tasksFromApi = [
     LastModifiedDate: '2023-09-25T06:38:43.000+0000',
     LastModifiedById: '0051y00000NpONKAA3',
     Project: 'a081y000004GhyeAAC',
+    Rank: '0|i00007:',
   },
   {
     attributes: {
@@ -62,7 +37,7 @@ const tasksFromApi = [
     Status: 'Not Started',
     Priority: 'Normal',
     Color: '#3B82F6',
-    Cost: null,
+    Cost: undefined,
     Hour: 8,
     Assignee: null,
     Team: 'a0C1y0000028W8iEAE',
@@ -72,6 +47,7 @@ const tasksFromApi = [
     LastModifiedDate: '2023-09-25T06:38:46.000+0000',
     LastModifiedById: '0051y00000NpONKAA3',
     Project: 'a081y000004GhyeAAC',
+    Rank: '0|i0000f:',
   },
   {
     attributes: {
@@ -82,7 +58,7 @@ const tasksFromApi = [
     Name: 'New task',
     DueDate: '2023-09-27',
     StartDate: '2023-09-26',
-    Status: 'Done',
+    Status: 'Completed',
     Priority: 'Normal',
     Color: '#3B82F6',
     Cost: null,
@@ -95,6 +71,7 @@ const tasksFromApi = [
     LastModifiedDate: '2023-09-25T06:38:43.000+0000',
     LastModifiedById: '0051y00000NpONKAA3',
     Project: 'a081y000004GhyeAAC',
+    Rank: '0|i0000n:',
   },
   {
     attributes: {
@@ -118,6 +95,7 @@ const tasksFromApi = [
     LastModifiedDate: '2023-10-03T02:21:04.000+0000',
     LastModifiedById: '0051y00000NpONKAA3',
     Project: 'a081y000004GhyeAAC',
+    Rank: '0|i0000v:',
   },
   {
     attributes: {
@@ -128,7 +106,7 @@ const tasksFromApi = [
     Name: 'New task',
     DueDate: '2023-10-04',
     StartDate: '2023-10-04',
-    Status: 'In Progress',
+    Status: 'In progress',
     Priority: 'Normal',
     Color: '#3B82F6',
     Cost: null,
@@ -141,6 +119,7 @@ const tasksFromApi = [
     LastModifiedDate: '2023-10-03T02:20:56.000+0000',
     LastModifiedById: '0051y00000NpONKAA3',
     Project: 'a081y000004GhyeAAC',
+    Rank: '0|i00013:',
   },
   {
     attributes: {
@@ -151,7 +130,7 @@ const tasksFromApi = [
     Name: 'New task',
     DueDate: '2023-10-04',
     StartDate: '2023-10-04',
-    Status: 'Not Started',
+    Status: 'Review',
     Priority: 'Normal',
     Color: '#3B82F6',
     Cost: null,
@@ -164,45 +143,52 @@ const tasksFromApi = [
     LastModifiedDate: '2023-10-03T02:20:39.000+0000',
     LastModifiedById: '0051y00000NpONKAA3',
     Project: 'a081y000004GhyeAAC',
+    Rank: '0|i0001b:',
   },
 ];
-let start = LexoRank.middle();
-const columns = initialState.columns;
-let tasksMap = structuredClone(tasksFromApi);
-tasksMap.forEach((task, index) => {
-  if (!mapObj[task.Status]) {
-    mapObj[task.Status] = {
-      colRank: start.toString(),
-      tasks: [],
-    };
-  }
-  mapObj[task.Status].tasks.push(task);
-  start = start.genNext();
-});
-const newMapObject = {};
-
-const object = Object.values(columns).map((col) => col.columnId);
-const lexoRanks = {};
-
-for (let i = 0; i < 10; i++) {
-  lexoRanks[i] = LexoRank.middle().toString();
-}
-
-// console.log(
-//   '🚀 ~ file: App.js:180 ~ mapObj:',
-//   Object.keys(mapObj).map((key) => mapObj[key]),
-// );
-const columns2 = [
-  { Id: 'ColumnId-1', Name: '1', Type: 'Status', Value: 'Not Started', Color: '#3B82F6', max: 10, Rank: 1 },
-  { Id: 'ColumnId-2', Name: '2', Type: 'Status', Value: 'In progress', Color: '#3B82F6', max: 10, Rank: 2 },
-  { Id: 'ColumnId-3', Name: '3', Type: 'Status', Value: 'Review', Color: '#3B82F6', max: 10, Rank: 3 },
-  { Id: 'ColumnId-4', Name: '4', Type: 'Status', Value: 'Completed', Color: '#3B82F6', max: 10, Rank: 4 },
-  { Id: 'ColumnId-5', Name: '5', Type: 'Status', Value: 'Invalid', Color: '#3B82F6', max: 10, Rank: -1 },
+const statuses = [
+  {
+    attributes: null,
+    label: 'Not Started',
+    validFor: [],
+    value: 'Not Started',
+  },
+  {
+    attributes: null,
+    label: 'In progress',
+    validFor: [],
+    value: 'In progress',
+  },
+  {
+    attributes: null,
+    label: 'Review',
+    validFor: [],
+    value: 'Review',
+  },
+  {
+    attributes: null,
+    label: 'Completed',
+    validFor: [],
+    value: 'Completed',
+  },
+  {
+    attributes: null,
+    label: 'Invalid',
+    validFor: [],
+    value: 'Invalid',
+  },
 ];
-const sortedCols = columns2.sort((a: any, b: any) => {
-  if (a.Rank && !b.Rank) return -1;
-  if (!a.Rank && b.Rank) return 1;
-  if (!a.Rank && !b.Rank) return 0;
-  return -a.Rank + b.Rank;
-});
-console.log('🚀 ~ file: App.tsx:209 ~ sortedCols ~ sortedCols:', sortedCols);
+
+const columns = [
+  { Id: 'ColumnId-1', Name: '1', Type: 'Status', Value: 'Not Started', Color: '#3B82F6', max: 10, Rank: '0|i00007:' },
+  { Id: 'ColumnId-2', Name: '2', Type: 'Status', Value: 'In progress', Color: '#3B82F6', max: 10, Rank: '0|i0000f:' },
+  { Id: 'ColumnId-3', Name: '3', Type: 'Status', Value: 'Review', Color: '#3B82F6', max: 10, Rank: '0|i0000n:' },
+  { Id: 'ColumnId-4', Name: '4', Type: 'Status', Value: 'Completed', Color: '#3B82F6', max: 10, Rank: '0|i0000v:' },
+  { Id: 'ColumnId-5', Name: '5', Type: 'Status', Value: 'Invalid', Color: '#3B82F6', max: 10, Rank: '0|hzzzzz' },
+];
+
+export default {
+  tasks,
+  statuses,
+  columns,
+};
