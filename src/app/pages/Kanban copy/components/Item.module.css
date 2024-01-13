@@ -1,0 +1,42 @@
+@keyframes pop {
+  0% {
+    transform: scale(1);
+    box-shadow: var(--box-shadow);
+  }
+  100% {
+    transform: scale(var(--scale));
+    box-shadow: var(--box-shadow-picked-up);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 500ms ease;
+}
+
+.dragOverlay {
+  cursor: inherit;
+  /* box-shadow: 0 0px 6px 2px $focused-outline-color; */
+  animation: pop 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22);
+  transform: scale(var(--scale));
+  box-shadow: var(--box-shadow-picked-up);
+  opacity: 1;
+}
+
+&:hover {
+  .Remove {
+    visibility: visible;
+  }
+}
+
+.Remove {
+  visibility: hidden;
+}
